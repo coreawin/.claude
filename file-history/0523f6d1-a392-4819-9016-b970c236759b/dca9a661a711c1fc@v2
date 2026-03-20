@@ -1,0 +1,12 @@
+# Project Memory
+
+## User Preferences
+- ntfy channel: `coreawin-claude-code`
+- ntfy server: `https://ntfy.sh`
+- Korean text in ntfy: send as ASCII or English only (Korean causes file attachment issue)
+
+## Environment
+- Platform: Windows 11, shell: bash
+- Node.js: v24.13.0
+- Playwright + Chromium: installed at C:\Users\corea\AppData\Local\ms-playwright\
+- Working directory: D:\Claude Code

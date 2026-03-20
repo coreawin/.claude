@@ -1,0 +1,109 @@
+2026-03-05T04:59:07.917Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:07.917Z [DEBUG] MDM settings load completed in 15ms
+2026-03-05T04:59:07.919Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:07.919Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\corea\.claude\settings.json
+2026-03-05T04:59:07.919Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:07.919Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\corea\.claude\settings.json
+2026-03-05T04:59:07.919Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:07.919Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\corea\.claude\settings.local.json
+2026-03-05T04:59:07.919Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:07.920Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\ProgramData\ClaudeCode\managed-settings.json
+2026-03-05T04:59:07.920Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:07.920Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\ProgramData\ClaudeCode\managed-settings.json
+2026-03-05T04:59:07.922Z [ERROR] Failed to save config with lock: Error: ENOENT: no such file or directory, lstat 'C:\Users\corea\.claude.json'
+2026-03-05T04:59:07.923Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686747923
+2026-03-05T04:59:07.923Z [DEBUG] Setting permissions for new file: 600
+2026-03-05T04:59:07.927Z [DEBUG] Temp file written successfully, size: 50 bytes
+2026-03-05T04:59:07.927Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686747923 to C:\Users\corea\.claude.json
+2026-03-05T04:59:07.928Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:07.928Z [DEBUG] [init] configureGlobalMTLS starting
+2026-03-05T04:59:07.928Z [DEBUG] [init] configureGlobalMTLS complete
+2026-03-05T04:59:07.928Z [DEBUG] [init] configureGlobalAgents starting
+2026-03-05T04:59:07.928Z [DEBUG] [init] configureGlobalAgents complete
+2026-03-05T04:59:07.960Z [DEBUG] Using bash path: "C:\Program Files\Git\bin\bash.exe"
+2026-03-05T04:59:07.965Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686747965
+2026-03-05T04:59:07.966Z [DEBUG] Preserving file permissions: 100666
+2026-03-05T04:59:07.970Z [DEBUG] Temp file written successfully, size: 130 bytes
+2026-03-05T04:59:07.970Z [DEBUG] Applied original permissions to temp file
+2026-03-05T04:59:07.970Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686747965 to C:\Users\corea\.claude.json
+2026-03-05T04:59:07.971Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:07.978Z [DEBUG] Error log sink initialized
+2026-03-05T04:59:07.981Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686747981
+2026-03-05T04:59:07.981Z [DEBUG] Preserving file permissions: 100666
+2026-03-05T04:59:07.985Z [DEBUG] Temp file written successfully, size: 166 bytes
+2026-03-05T04:59:07.986Z [DEBUG] Applied original permissions to temp file
+2026-03-05T04:59:07.986Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686747981 to C:\Users\corea\.claude.json
+2026-03-05T04:59:07.986Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:07.996Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686747996
+2026-03-05T04:59:07.996Z [DEBUG] Preserving file permissions: 100666
+2026-03-05T04:59:08.001Z [DEBUG] Temp file written successfully, size: 205 bytes
+2026-03-05T04:59:08.001Z [DEBUG] Applied original permissions to temp file
+2026-03-05T04:59:08.001Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686747996 to C:\Users\corea\.claude.json
+2026-03-05T04:59:08.001Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:08.007Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:08.007Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\corea\.claude\settings.json
+2026-03-05T04:59:08.011Z [DEBUG] Git remote URL: null
+2026-03-05T04:59:08.011Z [DEBUG] No git remote URL found
+2026-03-05T04:59:08.014Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:08.015Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\ProgramData\ClaudeCode\managed-settings.json
+2026-03-05T04:59:08.015Z [DEBUG] Loading skills from: managed=C:\ProgramData\ClaudeCode\.claude\skills, user=C:\Users\corea\.claude\skills, project=[]
+2026-03-05T04:59:08.016Z [DEBUG] Error log sink initialized
+2026-03-05T04:59:08.023Z [DEBUG] [Claude in Chrome] Found chrome profiles: Default
+2026-03-05T04:59:08.023Z [DEBUG] Loaded 0 unique skills (0 unconditional, 0 conditional, managed: 0, user: 0, project: 0, additional: 0, legacy commands: 0)
+2026-03-05T04:59:08.024Z [DEBUG] installed_plugins.json doesn't exist, returning empty V2 object
+2026-03-05T04:59:08.024Z [DEBUG] Found 0 plugins (0 enabled, 0 disabled)
+2026-03-05T04:59:08.024Z [DEBUG] getPluginSkills: Processing 0 enabled plugins
+2026-03-05T04:59:08.024Z [DEBUG] Registered 0 hooks from 0 plugins
+2026-03-05T04:59:08.024Z [DEBUG] Total plugin skills loaded: 0
+2026-03-05T04:59:08.024Z [DEBUG] Total plugin commands loaded: 0
+2026-03-05T04:59:08.024Z [DEBUG] getSkills returning: 0 skill dir commands, 0 plugin skills, 5 bundled skills, 0 builtin plugin skills
+2026-03-05T04:59:08.029Z [DEBUG] [render] initLayout starting
+2026-03-05T04:59:08.060Z [DEBUG] [render] initLayout complete
+2026-03-05T04:59:08.069Z [DEBUG] Install: Starting installation process (force=false, target=latest)
+2026-03-05T04:59:08.070Z [DEBUG] Install: Calling installLatest(channelOrVersion=latest, forceReinstall=false)
+2026-03-05T04:59:08.071Z [DEBUG] [render] first ink render: 490ms since process start
+2026-03-05T04:59:08.071Z [DEBUG] [Claude in Chrome] Found brave profiles: Default
+2026-03-05T04:59:08.075Z [DEBUG] [Claude in Chrome] Found edge profiles: Default
+2026-03-05T04:59:08.076Z [DEBUG] [Claude in Chrome] Extension not found in any browser
+2026-03-05T04:59:08.078Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686748078
+2026-03-05T04:59:08.078Z [DEBUG] Preserving file permissions: 100666
+2026-03-05T04:59:08.083Z [DEBUG] Temp file written successfully, size: 248 bytes
+2026-03-05T04:59:08.083Z [DEBUG] Applied original permissions to temp file
+2026-03-05T04:59:08.083Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686748078 to C:\Users\corea\.claude.json
+2026-03-05T04:59:08.083Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:08.109Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686748109
+2026-03-05T04:59:08.109Z [DEBUG] Preserving file permissions: 100666
+2026-03-05T04:59:08.114Z [DEBUG] Temp file written successfully, size: 289 bytes
+2026-03-05T04:59:08.114Z [DEBUG] Applied original permissions to temp file
+2026-03-05T04:59:08.114Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686748109 to C:\Users\corea\.claude.json
+2026-03-05T04:59:08.115Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:08.386Z [DEBUG] Checking for native installer update to version 2.1.69
+2026-03-05T04:59:08.398Z [DEBUG] Downloading native installer version 2.1.69
+2026-03-05T04:59:16.473Z [DEBUG] Atomically installed binary to C:\Users\corea\.local\share\claude\versions\2.1.69
+2026-03-05T04:59:16.504Z [DEBUG] Could not remove empty directory at C:\Users\corea\.local\bin\claude.exe: Error: ENOENT: no such file or directory, stat 'C:\Users\corea\.local\bin\claude.exe'
+2026-03-05T04:59:16.572Z [DEBUG] Successfully updated to version 2.1.69
+2026-03-05T04:59:16.576Z [DEBUG] Writing to temp file: C:\Users\corea\.claude.json.tmp.42192.1772686756576
+2026-03-05T04:59:16.576Z [DEBUG] Preserving file permissions: 100666
+2026-03-05T04:59:16.583Z [DEBUG] Temp file written successfully, size: 383 bytes
+2026-03-05T04:59:16.583Z [DEBUG] Applied original permissions to temp file
+2026-03-05T04:59:16.583Z [DEBUG] Renaming C:\Users\corea\.claude.json.tmp.42192.1772686756576 to C:\Users\corea\.claude.json
+2026-03-05T04:59:16.584Z [DEBUG] File C:\Users\corea\.claude.json written atomically
+2026-03-05T04:59:16.585Z [DEBUG] Native installer: Set installMethod to "native" and disabled legacy auto-updater for protection
+2026-03-05T04:59:16.585Z [DEBUG] Install: installLatest returned version=2.1.69, wasUpdated=true, lockFailed=false
+2026-03-05T04:59:16.597Z [DEBUG] Install: Setup launcher completed with 1 messages
+2026-03-05T04:59:16.597Z [DEBUG] Install: Setup message: Native installation exists but C:\Users\corea\.local\bin is not in your PATH. Add it by opening: System Properties → Environment Variables → Edit User PATH → New → Add the path above. Then restart your terminal.
+2026-03-05T04:59:16.597Z [DEBUG] Install: Cleaning up npm installations after successful install
+2026-03-05T04:59:17.997Z [DEBUG] Removed global npm installation of @anthropic-ai/claude-code
+2026-03-05T04:59:17.998Z [DEBUG] Cleaned up 1 npm installation(s)
+2026-03-05T04:59:18.016Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:18.017Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\corea\.claude\settings.json
+2026-03-05T04:59:18.017Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:18.017Z [DEBUG] Writing to temp file: C:\Users\corea\.claude\settings.json.tmp.42192.1772686758017
+2026-03-05T04:59:18.026Z [DEBUG] Temp file written successfully, size: 37 bytes
+2026-03-05T04:59:18.027Z [DEBUG] Renaming C:\Users\corea\.claude\settings.json.tmp.42192.1772686758017 to C:\Users\corea\.claude\settings.json
+2026-03-05T04:59:18.027Z [DEBUG] File C:\Users\corea\.claude\settings.json written atomically
+2026-03-05T04:59:18.027Z [DEBUG] Install: Saved autoUpdatesChannel=latest to user settings
+2026-03-05T04:59:18.046Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:18.046Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\Users\corea\.claude\settings.local.json
+2026-03-05T04:59:18.047Z [DEBUG] detectFileEncoding failed for expected reason: ENOENT
+2026-03-05T04:59:18.047Z [DEBUG] Broken symlink or missing file encountered for settings.json at path: C:\ProgramData\ClaudeCode\managed-settings.json

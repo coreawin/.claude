@@ -1,0 +1,211 @@
+const { chromium } = require('playwright');
+const fs = require('fs');
+const path = require('path');
+const https = require('https');
+const http = require('http');
+
+// ── Config ───────────────────────────────────────────────
+const VERIFY_URL = process.env.VERIFY_URL || 'http://121.126.210.2:8000/ko/login';
+const VERIFY_ID  = process.env.VERIFY_ID  || '';
+const VERIFY_PW  = process.env.VERIFY_PW  || '';
+const VERIFY_OUT = process.env.VERIFY_OUT || './web-verify-report';
+const NTFY_CH    = process.env.NTFY_CH    || 'coreawin-claude-code';
+
+// ── Menu structure (from nav link inspection) ────────────
+// fullUrl: /ko/ prefix 고정 — 사이드바 클릭 시 /en/ 로케일로 전환되는 문제 방지
+const BASE_URL = 'http://121.126.210.2:8000';
+const MENUS = [
+  { name: 'Workspace',       group: 'Data',       href: '/workspaces',             fullUrl: `${BASE_URL}/ko/workspaces`,             textKo: '워크스페이스' },
+  { name: 'Model List',      group: 'Model',      href: '/models',                 fullUrl: `${BASE_URL}/ko/models`,                 textKo: '목록 및 관리' },
+  { name: 'Training',        group: 'Model',      href: '/models/train',           fullUrl: `${BASE_URL}/ko/models/train`,           textKo: '학습' },
+  { name: 'API Settings',    group: 'Model',      href: '/models/default',         fullUrl: `${BASE_URL}/ko/models/default`,         textKo: 'API 설정' },
+  { name: 'Training Status', group: 'Monitoring', href: '/monitoring/train',       fullUrl: `${BASE_URL}/ko/monitoring/train`,       textKo: '학습 진행 상태' },
+  { name: 'Demo',            group: 'Monitoring', href: '/monitoring/demo',        fullUrl: `${BASE_URL}/ko/monitoring/demo`,        textKo: '데모' },
+  { name: 'Compare Demo',    group: 'Monitoring', href: '/monitoring/demo-comparison', fullUrl: `${BASE_URL}/ko/monitoring/demo-comparison`, textKo: '비교 데모' },
+  { name: 'Log View',        group: 'Monitoring', href: '/monitoring/logs',        fullUrl: `${BASE_URL}/ko/monitoring/logs`,        textKo: '로그 조회' },
+];
+
+// ── Helpers ───────────────────────────────────────────────
+function ntfy(title, body, priority = 'default', tags = 'white_check_mark') {
+  return new Promise((resolve) => {
+    const data = Buffer.from(body, 'utf-8');
+    const req = http.request({
+      hostname: 'ntfy.sh',
+      port: 80,
+      path: `/${NTFY_CH}`,
+      method: 'POST',
+      headers: {
+        'Title': title,
+        'Priority': priority,
+        'Tags': tags,
+        'Content-Type': 'text/plain; charset=utf-8',
+        'Content-Length': data.length,
+      },
+    }, (res) => { res.resume(); resolve(); });
+    req.on('error', () => resolve());
+    req.write(data);
+    req.end();
+  });
+}
+
+function saveResult(results) {
+  fs.mkdirSync(VERIFY_OUT, { recursive: true });
+  fs.writeFileSync(path.join(VERIFY_OUT, 'results.json'), JSON.stringify(results, null, 2));
+}
+
+// ── Main ──────────────────────────────────────────────────
+(async () => {
+  const results = {
+    url: VERIFY_URL,
+    timestamp: new Date().toISOString(),
+    summary: { total: 0, pass: 0, fail: 0 },
+    steps: [],
+  };
+
+  const screenshotDir = path.join(VERIFY_OUT, 'screenshots');
+  fs.mkdirSync(screenshotDir, { recursive: true });
+
+  const browser = await chromium.launch({ headless: true });
+  const context = await browser.newContext({ ignoreHTTPSErrors: true });
+  const page = await context.newPage();
+
+  const consoleErrors = [];
+  page.on('console', msg => { if (msg.type() === 'error') consoleErrors.push(msg.text()); });
+
+  function addStep(name, status, detail, screenshot) {
+    results.summary.total++;
+    if (status === 'pass') results.summary.pass++;
+    else results.summary.fail++;
+    results.steps.push({ name, status, detail, screenshot: screenshot || null, time: new Date().toISOString() });
+    saveResult(results);
+    console.log(`[${status.toUpperCase()}] ${name}: ${detail}`);
+  }
+
+  // ── STEP 1: Page load ─────────────────────────────────
+  console.log('\n=== STEP 1: Page Load ===');
+  try {
+    const res = await page.goto(VERIFY_URL, { waitUntil: 'networkidle', timeout: 15000 });
+    const status = res.status();
+    const title = await page.title();
+    await page.screenshot({ path: path.join(screenshotDir, '01_login_page.png') });
+    addStep('Page Load', 'pass', `HTTP ${status} - Title: "${title}"`, '01_login_page.png');
+    await ntfy(
+      '[Web Verify] STEP1 Page Load - OK',
+      `URL: ${VERIFY_URL}\nHTTP Status: ${status}\nPage Title: ${title}\nScreenshot: 01_login_page.png`,
+      'default', 'white_check_mark'
+    );
+  } catch (e) {
+    addStep('Page Load', 'fail', e.message, null);
+    await ntfy('[Web Verify] STEP1 Page Load - FAILED', `Error: ${e.message}`, 'urgent', 'x,rotating_light');
+    await browser.close();
+    process.exit(1);
+  }
+
+  // ── STEP 2: Login ─────────────────────────────────────
+  console.log('\n=== STEP 2: Login ===');
+  try {
+    // Wait for login form to render (SPA/Next.js)
+    await page.waitForLoadState('networkidle');
+
+    // Find ID input (placeholder="example" or first text input)
+    const idInput = page.locator('input[placeholder="example"], input[type="text"], input[name="username"], input[id*="id"], input[id*="user"]').first();
+    await idInput.waitFor({ timeout: 10000 });
+    await idInput.fill(VERIFY_ID);
+
+    // Find PW input
+    const pwInput = page.locator('input[type="password"]').first();
+    await pwInput.fill(VERIFY_PW);
+
+    await page.screenshot({ path: path.join(screenshotDir, '02_login_filled.png') });
+
+    // Click login button
+    const loginBtn = page.locator('button:has-text("로그인"), button[type="submit"]').first();
+    await loginBtn.click();
+
+    // Wait for navigation after login
+    await page.waitForURL(url => !url.toString().includes('/login'), { timeout: 10000 });
+    await page.waitForLoadState('networkidle');
+
+    // ISSUE-003: Next.js SPA — networkidle 후에도 React 하이드레이션 진행 중
+    // 사이드바 링크가 실제로 DOM에 나타날 때까지 명시적 대기
+    await page.waitForSelector('a[href*="workspaces"]', { timeout: 15000 });
+
+    const afterUrl = page.url();
+    await page.screenshot({ path: path.join(screenshotDir, '03_after_login.png') });
+    addStep('Login', 'pass', `Redirected to: ${afterUrl}`, '03_after_login.png');
+    await ntfy(
+      '[Web Verify] STEP2 Login - OK',
+      `Credentials: ID=${VERIFY_ID}\nLogin successful\nRedirected to: ${afterUrl}\nNo login errors detected`,
+      'default', 'white_check_mark'
+    );
+  } catch (e) {
+    await page.screenshot({ path: path.join(screenshotDir, '02_login_failed.png') }).catch(() => {});
+    addStep('Login', 'fail', e.message, '02_login_failed.png');
+    await ntfy('[Web Verify] STEP2 Login - FAILED', `Error: ${e.message}`, 'urgent', 'x,rotating_light');
+    await browser.close();
+    process.exit(1);
+  }
+
+  // ── STEP 3: Menu verification ─────────────────────────
+  console.log('\n=== STEP 3: Menu Verification ===');
+  for (let i = 0; i < MENUS.length; i++) {
+    const menu = MENUS[i];
+    const idx = String(i + 4).padStart(2, '0');
+    const ssName = `${idx}_menu_${menu.name.replace(/ /g, '_')}.png`;
+    consoleErrors.length = 0; // reset per menu
+
+    try {
+      // 사이드바 클릭 대신 fullUrl 직접 이동 — 클릭 시 /en/ 로케일 전환 문제 방지
+      await page.goto(menu.fullUrl, { waitUntil: 'networkidle', timeout: 15000 });
+      await page.waitForSelector('[data-slot="sidebar"]', { timeout: 10000 });
+
+      const currentUrl = page.url();
+      await page.screenshot({ path: path.join(screenshotDir, ssName) });
+
+      const errCount = consoleErrors.length;
+      const status = errCount === 0 ? 'pass' : 'fail';
+      const detail = `URL: ${currentUrl} | Console errors: ${errCount}`;
+
+      addStep(`Menu: ${menu.name}`, status, detail, ssName);
+
+      if (status === 'pass') {
+        await ntfy(
+          `[Web Verify] Menu ${i + 1}/${MENUS.length} ${menu.name} - OK`,
+          `Group: ${menu.group}\nMenu: ${menu.name} (${menu.textKo})\nURL: ${currentUrl}\nPage loaded: OK\nConsole errors: 0\nScreenshot: ${ssName}`,
+          'default', 'white_check_mark'
+        );
+      } else {
+        await ntfy(
+          `[Web Verify] Menu ${menu.name} - FAIL`,
+          `Group: ${menu.group}\nConsole errors: ${errCount}\n${consoleErrors.slice(0, 3).join('\n')}`,
+          'high', 'warning'
+        );
+      }
+    } catch (e) {
+      await page.screenshot({ path: path.join(screenshotDir, ssName) }).catch(() => {});
+      addStep(`Menu: ${menu.name}`, 'fail', e.message, ssName);
+      await ntfy(
+        `[Web Verify] Menu ${menu.name} - FAILED`,
+        `Error: ${e.message}`,
+        'urgent', 'x,rotating_light'
+      );
+    }
+  }
+
+  await browser.close();
+
+  // ── Final summary ─────────────────────────────────────
+  const { total, pass, fail } = results.summary;
+  console.log(`\n=== DONE: Pass ${pass}/${total}, Fail ${fail} ===`);
+  saveResult(results);
+
+  const priority = fail > 0 ? 'high' : 'high';
+  const tags = fail > 0 ? 'x,rotating_light' : 'white_check_mark,tada';
+  await ntfy(
+    `[Web Verify] All Done - Pass ${pass}/${total} Fail ${fail}`,
+    `Target: ${VERIFY_URL}\nTotal checks: ${total}\nPass: ${pass}\nFail: ${fail}\nReport: ${VERIFY_OUT}/report.html`,
+    priority, tags
+  );
+
+  process.exit(fail > 0 ? 1 : 0);
+})();

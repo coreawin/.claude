@@ -1,0 +1,170 @@
+# Web Verify 트러블슈팅 지식 베이스
+
+> 실제 검증 작업 중 발생한 문제와 해결책을 기록합니다.
+> 새로운 문제 발생 시 반드시 이 파일에 추가하세요.
+
+---
+
+## ❌ ISSUE-001: curl로 SPA 로그인 API 직접 호출 불가
+
+### 증상
+```
+curl -X POST /token/obtain/ → 307 Redirect 또는 404
+```
+
+### 원인
+- Next.js SPA는 로그인 폼이 JavaScript로 렌더링됨
+- curl은 JS 미실행 → 실제 로그인 API 엔드포인트 탐색 실패
+- 백엔드가 별도 포트에 있는 경우 포트 스캔 필요
+
+### 해결
+- **curl 방식 포기, Playwright 사용** (실제 브라우저로 폼 입력/클릭)
+- SPA/CSR/SSR 모두 Playwright로 통일
+
+---
+
+## ❌ ISSUE-002: `text="메뉴명"` 셀렉터가 비활성 요소(브레드크럼)에 매칭
+
+### 증상
+```
+locator.click: element is not enabled
+element: <span role="link" aria-disabled="true" aria-current="page">워크스페이스</span>
+```
+
+### 원인
+- `text="워크스페이스"` 로케이터가 사이드바 링크 대신 **브레드크럼 SPAN**을 먼저 매칭
+- 브레드크럼은 현재 페이지 표시용 → `aria-disabled="true"` 설정됨
+- 동일 텍스트가 여러 곳에 존재: 브레드크럼, 사이드바, 페이지 제목(H1)
+
+### 해결
+- `text=` 대신 `nav a[href="..."]` 방식으로 정확한 셀렉터 사용
+- href 기반 탐색이 SPA 사이드바에서 가장 안정적
+
+---
+
+## ❌ ISSUE-003: `nav a[href]` 셀렉터 8000ms 타임아웃
+
+### 증상
+```
+locator.waitFor: Timeout 8000ms exceeded.
+waiting for locator('nav a[href="/workspaces"]').first() to be visible
+```
+
+### 원인 (진단 스크립트로 확인)
+```
+Container elements:
+  nav:                   NOT FOUND
+  aside:                 NOT FOUND
+  [role="navigation"]:   NOT FOUND
+  [data-slot="sidebar"]: NOT FOUND
+```
+- `waitForLoadState('networkidle')` 완료 시점 = 네트워크 요청 없음 상태
+- **Next.js SPA React 하이드레이션은 네트워크 요청 없이 클라이언트에서 진행**
+- `networkidle` 이후에도 React 컴포넌트(사이드바)가 마운트되지 않은 상태에서 DOM 쿼리 실행
+- `page.locator().all()` 은 우연히 타이밍이 맞아 성공하는 경우도 있음 (비결정적)
+
+### 해결
+```javascript
+// networkidle 후 사이드바 링크가 실제로 나타날 때까지 명시적 대기
+await page.waitForLoadState('networkidle');
+await page.waitForSelector('a[href*="workspaces"]', { timeout: 15000 });
+// 이후 메뉴 클릭 진행
+```
+
+### 추가 확인 사항 (진단 스크립트 실행 후)
+- `nav` 태그: EXISTS 이지만 **children 링크 0개** → 실제 사이드바 컨테이너 아님
+- 실제 컨테이너: `[data-slot="sidebar"]` 또는 `[data-sidebar]` (children 9개)
+- href 형식: `/workspaces` (locale prefix `/ko` 없음) — `a[href="/ko/workspaces"]` ❌
+- 올바른 셀렉터: `[data-slot="sidebar"] a[href="/workspaces"]`
+
+---
+
+## ❌ ISSUE-004: inspect.js vs verify.js 결과 불일치
+
+### 증상
+- inspect.js: `nav a` 9개 링크 정상 발견
+- verify.js: 동일 셀렉터로 0개 (타임아웃)
+
+### 원인
+- 두 스크립트 모두 `waitForLoadState('networkidle')` 사용
+- inspect.js는 `page.locator().all()` 실행 시 React 하이드레이션 완료 타이밍과 맞아 성공
+- verify.js는 그 이전에 실행되어 실패 (비결정적 타이밍 의존)
+- `getAttribute('href')` 반환값: `/workspaces` (로케일 prefix 없음)
+- 실제 DOM 렌더링 후 href: `/ko/workspaces` 여부 별도 확인 필요
+
+### 해결
+- `waitForSelector` 로 명시적 대기 추가 (ISSUE-003 해결책 동일)
+
+---
+
+## ❌ ISSUE-005: Windows bash에서 curl 한글 메시지 파일 첨부 문제
+
+### 증상
+```json
+{"message": "You received a file: attachment.txt", "attachment": {...}}
+```
+
+### 원인
+- Windows bash + curl 환경에서 한글 문자열이 `iso-8859-1`로 인코딩됨
+- ntfy.sh가 바이너리로 판단하여 파일 첨부 형태로 전송
+
+### 해결
+- **ntfy 메시지(Title, body) 모두 영문으로 작성**
+- 한글 필요 시 python3 urllib 방식 사용:
+```python
+import urllib.request
+data = '한글 메시지'.encode('utf-8')
+req = urllib.request.Request('https://ntfy.sh/CHANNEL', data=data,
+  headers={'Title': 'English Title', 'Content-Type': 'text/plain; charset=utf-8'})
+urllib.request.urlopen(req)
+```
+
+---
+
+## ❌ ISSUE-006: curl 파이프 명령어 Windows bash 오류
+
+### 증상
+```
+head: unknown option -- s
+cut: unknown option -- -
+```
+
+### 원인
+- Windows bash 환경에서 일부 GNU coreutils 동작 상이
+- `curl ... | head -1` , `cut -c1-300` 등 파이프 옵션 미지원
+
+### 해결
+- 단독 명령어만 사용: `curl --version` (파이프 없이)
+- 긴 출력 자르기는 Node.js 스크립트로 처리
+
+---
+
+## ❌ ISSUE-007: SPA 동일 페이지 goto() networkidle 타임아웃
+
+### 증상
+```
+page.goto: Timeout 30000ms exceeded.
+navigating to "/ko/workspaces", waiting until "networkidle"
+```
+
+### 원인
+- 로그인 후 이미 `/ko/workspaces`에 있는 상태에서 `page.goto('/ko/workspaces', { waitUntil: 'networkidle' })` 재호출
+- SPA의 WebSocket / 폴링 요청이 지속되어 `networkidle` 상태에 도달하지 못함
+
+### 해결
+```javascript
+// 이미 해당 페이지면 goto 생략, waitUntil도 domcontentloaded 사용
+if (!page.url().includes('/workspaces')) {
+  await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+}
+await page.waitForSelector('[data-slot="sidebar"]', { timeout: 15000 });
+```
+
+---
+
+## 📋 실행 원칙 (실패 시 행동 규칙)
+
+1. **실패 발생 시 즉시 멈추고 사용자에게 보고**
+2. 자체 수정 후 재시도하려면 반드시 사용자 허락 먼저 받기
+3. 같은 실패가 반복되면 원인 분석 결과를 정리해서 보고
+4. 해결 후 반드시 이 파일에 이슈 추가

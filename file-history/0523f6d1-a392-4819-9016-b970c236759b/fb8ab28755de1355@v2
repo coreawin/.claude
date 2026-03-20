@@ -1,0 +1,222 @@
+---
+name: notify
+description: |
+  작업 완료 후 ntfy.sh를 통해 Windows 데스크탑과 아이폰으로 푸시 알림을 전송하는 스킬입니다.
+  다음 상황에서 반드시 이 스킬을 사용하세요:
+  - 모든 스킬(base-web 등)의 작업이 완료되었을 때 마지막 단계로 자동 호출
+  - 사용자가 "알림 보내줘", "완료되면 알려줘", "notify", "푸시 알림" 등을 언급할 때
+  - 장시간 작업(프로젝트 생성, 빌드, 파일 대량 처리 등) 완료 시
+  - 작업 성공 또는 실패 결과를 즉시 사용자에게 전달해야 할 때
+---
+
+# Notify 스킬 — ntfy.sh 푸시 알림
+
+작업 완료 시 Windows 데스크탑과 아이폰에 동시에 푸시 알림을 전송합니다.
+
+---
+
+## ⚙️ 설정값 (최초 1회 수정)
+
+```bash
+NTFY_CHANNEL="YOUR_CHANNEL_NAME"   # ← 본인 ntfy 채널명으로 교체
+NTFY_SERVER="https://ntfy.sh"
+```
+
+> 채널명 예시: `홍길동-claude-notify` (타인과 겹치지 않도록 고유하게 설정)
+
+---
+
+## 🚀 사용법
+
+### 기본 알림 전송
+
+```bash
+# 성공 알림
+# - Title: 주 메시지 (핵심 상태, 짧게)
+# - body (-d): 세부 내용 (결과 수치, 경로 등)
+# ⚠️ Title과 body 모두 영문으로 작성 (한글은 파일 첨부로 전송됨 — Windows bash + curl 제약)
+curl -s \
+  -H "Title: Claude Code - Task Complete" \
+  -H "Priority: high" \
+  -H "Tags: white_check_mark" \
+  -d "All steps finished successfully. Check the output directory for results." \
+  https://ntfy.sh/YOUR_CHANNEL_NAME
+
+# 실패 알림
+curl -s \
+  -H "Title: Claude Code - Task Failed" \
+  -H "Priority: urgent" \
+  -H "Tags: x,rotating_light" \
+  -d "An error occurred during execution. Please check the logs." \
+  https://ntfy.sh/YOUR_CHANNEL_NAME
+```
+
+> ⚠️ **Windows bash 환경 한글 인코딩 주의**:
+> curl로 한글 메시지를 전송하면 `Content-Type: iso-8859-1`로 인식되어 **파일 첨부(attachment)** 형태로 전달됩니다.
+> - Title 헤더와 body(-d) 모두 **영문으로 작성**하세요.
+> - 한글이 꼭 필요한 경우 python3 urllib 방식을 사용하세요 (아래 참고).
+
+```bash
+# 한글 전송이 필요한 경우 — python3 방식
+python3 -c "
+import urllib.request
+data = '작업 완료! 결과를 확인하세요.'.encode('utf-8')
+req = urllib.request.Request(
+  'https://ntfy.sh/YOUR_CHANNEL_NAME', data=data,
+  headers={
+    'Title': 'Claude Code Complete',
+    'Priority': 'high',
+    'Tags': 'white_check_mark',
+    'Content-Type': 'text/plain; charset=utf-8'
+  })
+urllib.request.urlopen(req)
+"
+```
+
+---
+
+## 📋 Claude Code에서 호출 패턴
+
+### 패턴 1 — 스킬 완료 후 자동 알림
+
+모든 스킬(예: base-web)의 **마지막 단계**에서 아래 함수를 호출합니다.
+
+```bash
+# notify.sh 함수 정의
+notify() {
+  local STATUS="$1"       # "success" or "error"
+  local TASK="$2"         # 작업 이름
+  local DETAIL="$3"       # 상세 내용
+  local CHANNEL="YOUR_CHANNEL_NAME"
+
+  if [ "$STATUS" = "success" ]; then
+    local TITLE="✅ ${TASK} 완료"
+    local TAGS="white_check_mark"
+    local PRIORITY="high"
+  else
+    local TITLE="❌ ${TASK} 실패"
+    local TAGS="x,rotating_light"
+    local PRIORITY="urgent"
+  fi
+
+  curl -s \
+    -d "${DETAIL}" \
+    -H "Title: ${TITLE}" \
+    -H "Priority: ${PRIORITY}" \
+    -H "Tags: ${TAGS}" \
+    "https://ntfy.sh/${CHANNEL}"
+}
+
+# 사용 예시
+notify "success" "BaseWeb 프로젝트 생성" "frontend/backend 폴더 구성 완료. Vue3 + Spring Boot 4 + PostgreSQL"
+notify "error"   "BaseWeb 프로젝트 생성" "pom.xml 생성 중 오류 발생: Java 21 미설치"
+```
+
+### 패턴 2 — 소요 시간 포함 알림
+
+```bash
+START_TIME=$(date +%s)
+
+# ... 작업 수행 ...
+
+END_TIME=$(date +%s)
+ELAPSED=$(( END_TIME - START_TIME ))
+MINUTES=$(( ELAPSED / 60 ))
+SECONDS=$(( ELAPSED % 60 ))
+
+curl -s \
+  -d "BaseWeb 프로젝트 생성 완료 🎉
+소요시간: ${MINUTES}분 ${SECONDS}초
+생성 위치: ~/Project-Web
+스택: Vue3 + Spring Boot 4 + PostgreSQL" \
+  -H "Title: ✅ Claude Code 작업 완료" \
+  -H "Priority: high" \
+  -H "Tags: white_check_mark,stopwatch" \
+  https://ntfy.sh/YOUR_CHANNEL_NAME
+```
+
+### 패턴 3 — 단순 한 줄 알림 (빠른 사용)
+
+```bash
+curl -s -d "BaseWeb 프로젝트 생성 완료!" -H "Title: ✅ Claude Code" https://ntfy.sh/YOUR_CHANNEL_NAME
+```
+
+---
+
+## 🔗 base-web.md 스킬과 연동
+
+`base-web.md`의 완료 체크리스트 이후 마지막에 아래 내용을 추가합니다.
+
+```bash
+# base-web 스킬 마지막 단계
+echo "✅ 모든 파일 생성 완료. 알림 전송 중..."
+
+curl -s \
+  -d "BaseWeb 프로젝트 생성이 완료되었습니다.
+
+📁 구조:
+  - backend/  (Spring Boot 4 + JPA + PostgreSQL)
+  - frontend/ (Vue3 + TypeScript + Vite + Tailwind)
+
+🚀 다음 단계:
+  1. PostgreSQL 실행 확인
+  2. cd backend && ./mvnw spring-boot:run -P local
+  3. cd frontend && npm install && npm run dev" \
+  -H "Title: ✅ BaseWeb 프로젝트 생성 완료" \
+  -H "Priority: high" \
+  -H "Tags: rocket,white_check_mark" \
+  https://ntfy.sh/YOUR_CHANNEL_NAME
+```
+
+---
+
+## 🏷️ 태그 및 우선순위 참고표
+
+### Priority (우선순위)
+| 값 | 설명 | 알림 방식 |
+|----|------|-----------|
+| `min` | 최소 | 무음 |
+| `low` | 낮음 | 무음 |
+| `default` | 기본 | 일반 알림음 |
+| `high` | 높음 | 강조 알림음 |
+| `urgent` | 긴급 | 진동 + 강조음 반복 |
+
+### 자주 쓰는 Tags (이모지)
+| 태그 | 이모지 | 용도 |
+|------|--------|------|
+| `white_check_mark` | ✅ | 성공 |
+| `x` | ❌ | 실패 |
+| `rotating_light` | 🚨 | 긴급 오류 |
+| `rocket` | 🚀 | 배포 완료 |
+| `stopwatch` | ⏱️ | 시간 측정 |
+| `warning` | ⚠️ | 경고 |
+| `gear` | ⚙️ | 설정/빌드 |
+
+> 전체 태그 목록: https://ntfy.sh/docs/emojis/
+
+---
+
+## 🧪 동작 테스트
+
+```bash
+# WSL 터미널에서 실행하여 알림 수신 확인
+curl -d "notify 스킬 테스트 성공!" \
+     -H "Title: 🧪 테스트" \
+     -H "Priority: default" \
+     -H "Tags: gear" \
+     https://ntfy.sh/YOUR_CHANNEL_NAME
+```
+
+아이폰과 Windows에 동시 알림이 오면 설정 완료입니다.
+
+---
+
+## ⚠️ 주의사항
+
+1. **채널 보안**: ntfy.sh 무료 플랜은 채널이 공개됩니다. 채널명을 충분히 복잡하게 설정하세요.
+2. **민감 정보 금지**: 알림 메시지에 비밀번호, API 키 등을 포함하지 마세요.
+3. **WSL 환경**: Claude Code가 WSL에서 실행될 때 `curl`이 기본 포함되어 있어 별도 설치 불필요합니다.
+4. **프라이빗 채널 원할 시**: ntfy.sh 유료 플랜 또는 자체 ntfy 서버를 Docker로 운영할 수 있습니다.
+   ```bash
+   docker run -p 80:80 -v /var/cache/ntfy:/var/cache/ntfy binwiederhier/ntfy serve
+   ```

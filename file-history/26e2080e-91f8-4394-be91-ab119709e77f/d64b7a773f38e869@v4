@@ -1,0 +1,807 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>YouTube 인기 영상 탐색기</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: #0f0f0f;
+      color: #e8e8e8;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Malgun Gothic', sans-serif;
+      font-size: 13px;
+    }
+
+    /* ── Header ── */
+    .header {
+      background: #181818;
+      border-bottom: 2px solid #ff0000;
+      padding: 10px 16px;
+      display: flex;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 200;
+    }
+    .logo { color: #ff0000; font-size: 17px; font-weight: 800; }
+    .logo span { color: #e8e8e8; }
+
+    /* ── API Key ── */
+    .api-bar {
+      background: #141414;
+      border-bottom: 1px solid #2a2a2a;
+      padding: 7px 16px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .api-bar label { color: #777; font-size: 11px; white-space: nowrap; }
+    .api-input {
+      flex: 1; max-width: 480px;
+      background: #222; border: 1px solid #3a3a3a;
+      color: #e8e8e8; padding: 4px 10px;
+      border-radius: 4px; font-size: 12px; font-family: monospace;
+    }
+    .api-input:focus { outline: none; border-color: #ff4444; }
+    .btn-sm {
+      background: #2a2a2a; border: 1px solid #444;
+      color: #ccc; padding: 4px 10px;
+      border-radius: 4px; cursor: pointer; font-size: 11px;
+    }
+    .btn-sm:hover { background: #3a3a3a; }
+    .api-status { font-size: 11px; color: #4caf50; }
+
+    /* ── Search Section ── */
+    .search-section {
+      background: #181818;
+      padding: 10px 16px 8px;
+      border-bottom: 1px solid #2a2a2a;
+      position: sticky;
+      top: 43px;
+      z-index: 100;
+    }
+    .search-row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .search-input {
+      flex: 1; background: #222; border: 1px solid #3a3a3a;
+      border-radius: 4px; padding: 8px 12px;
+      color: #e8e8e8; font-size: 14px;
+    }
+    .search-input:focus { outline: none; border-color: #ff0000; }
+    .search-input::placeholder { color: #555; }
+    .btn-search {
+      background: #ff0000; color: white; border: none;
+      border-radius: 4px; padding: 0 20px;
+      cursor: pointer; font-size: 13px; font-weight: 700;
+    }
+    .btn-search:hover { background: #cc0000; }
+
+    /* ── Filter Row ── */
+    .filter-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .filter-group { display: flex; align-items: center; gap: 4px; }
+    .filter-label { color: #666; font-size: 11px; white-space: nowrap; }
+    select {
+      background: #222; border: 1px solid #3a3a3a;
+      color: #ddd; padding: 4px 6px;
+      border-radius: 4px; font-size: 12px; cursor: pointer;
+    }
+    select:focus { outline: none; border-color: #ff4444; }
+
+    .period-btns { display: flex; gap: 3px; }
+    .period-btn {
+      background: #222; border: 1px solid #3a3a3a;
+      color: #999; padding: 3px 9px;
+      border-radius: 3px; cursor: pointer; font-size: 11px;
+    }
+    .period-btn:hover { color: #ccc; background: #2e2e2e; }
+    .period-btn.active { background: #ff0000; border-color: #ff0000; color: white; font-weight: 700; }
+
+    .adv-toggle {
+      background: none; border: none; color: #666;
+      cursor: pointer; font-size: 11px; padding: 3px 6px;
+      border-radius: 3px; margin-left: auto;
+    }
+    .adv-toggle:hover { color: #aaa; background: #222; }
+
+    /* ── Advanced Filters ── */
+    .filter-advanced {
+      background: #141414; border-bottom: 1px solid #2a2a2a;
+      overflow: hidden; max-height: 0;
+      transition: max-height 0.2s ease, padding 0.2s ease;
+      padding: 0 16px;
+    }
+    .filter-advanced.open { max-height: 60px; padding: 7px 16px; }
+
+    /* ── Results Info ── */
+    .results-info {
+      padding: 7px 16px; color: #666; font-size: 11px;
+      background: #0f0f0f; border-bottom: 1px solid #1a1a1a;
+    }
+    .results-info strong { color: #aaa; }
+
+    /* ── Error ── */
+    #errorBox { margin: 8px 16px; }
+    .error-msg {
+      background: #2d0000; border: 1px solid #8b0000;
+      color: #ff8888; padding: 8px 12px;
+      border-radius: 4px; font-size: 12px;
+    }
+
+    /* ── 3단 레이아웃 ── */
+    .layout-container { padding: 12px 16px; }
+
+    .section-title {
+      font-size: 13px; font-weight: 700;
+      color: #ccc; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .section-title .badge {
+      font-size: 10px; font-weight: 600; padding: 2px 7px;
+      border-radius: 10px; background: #ff0000; color: white;
+    }
+    .section-title .cat-badge {
+      font-size: 10px; padding: 2px 7px;
+      border-radius: 10px; background: #2a2a2a;
+      border: 1px solid #444; color: #aaa;
+    }
+
+    /* 1단 */
+    .section-top { margin-bottom: 14px; }
+
+    /* 2단 3단 */
+    .section-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+    .section-col { min-width: 0; }
+
+    /* ── Video Card ── */
+    .video-card {
+      display: flex; gap: 9px;
+      padding: 8px 0; border-bottom: 1px solid #1e1e1e;
+    }
+    .video-card:last-child { border-bottom: none; }
+
+    .thumb-wrap { flex-shrink: 0; }
+    .thumb-wrap a { display: block; }
+    .thumb {
+      width: 140px; height: 79px;
+      object-fit: cover; border-radius: 4px;
+      background: #222; display: block;
+    }
+    .thumb-sm { width: 112px; height: 63px; }
+
+    .video-info { flex: 1; min-width: 0; }
+
+    .video-title {
+      font-size: 12px; font-weight: 600; line-height: 1.35;
+      margin-bottom: 3px;
+      display: -webkit-box; -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical; overflow: hidden;
+    }
+    .video-title a { color: #e8e8e8; text-decoration: none; }
+    .video-title a:hover { color: #ff6666; }
+
+    .video-meta { color: #666; font-size: 11px; margin-bottom: 4px; }
+    .video-meta .channel { color: #999; }
+
+    .meta-tags { display: flex; gap: 4px; margin-bottom: 4px; flex-wrap: wrap; }
+    .tag {
+      font-size: 10px; padding: 1px 6px;
+      border-radius: 10px; border: 1px solid #333;
+      color: #888; background: #1e1e1e;
+    }
+
+    .stat-row {
+      display: flex; gap: 8px; font-size: 11px;
+      color: #777; margin-bottom: 4px; flex-wrap: wrap;
+    }
+
+    /* ── Efficiency Badge ── */
+    .eff-badge {
+      display: inline-flex; align-items: center; gap: 3px;
+      padding: 2px 7px; border-radius: 3px;
+      font-size: 11px; font-weight: 700;
+    }
+    .eff-ultra { background: #3d0000; color: #ff4444; border: 1px solid #ff3333; }
+    .eff-high  { background: #2d1800; color: #ff9933; border: 1px solid #ff8800; }
+    .eff-mid   { background: #2a2200; color: #ffcc00; border: 1px solid #ccaa00; }
+    .eff-low   { background: #1e1e1e; color: #666;    border: 1px solid #333; }
+
+    /* ── AI 분석 버튼 ── */
+    .btn-ai {
+      background: #1a1a2e; border: 1px solid #4444aa;
+      color: #8888ff; padding: 2px 8px;
+      border-radius: 3px; cursor: pointer; font-size: 11px;
+      margin-left: 4px;
+    }
+    .btn-ai:hover { background: #22224a; color: #aaaaff; }
+
+    /* ── 더보기 ── */
+    .load-more-wrap { text-align: center; padding: 12px 0; display: none; }
+    .btn-more {
+      background: #222; border: 1px solid #444;
+      color: #ccc; padding: 7px 24px;
+      border-radius: 4px; cursor: pointer; font-size: 12px;
+    }
+    .btn-more:hover { background: #2e2e2e; }
+
+    /* ── Loading ── */
+    .loading-box { text-align: center; padding: 50px 20px; color: #666; }
+    .spinner {
+      width: 36px; height: 36px;
+      border: 3px solid #2a2a2a; border-top-color: #ff0000;
+      border-radius: 50%;
+      animation: spin 0.75s linear infinite;
+      margin: 0 auto 12px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .empty-box { text-align: center; padding: 30px; color: #555; font-size: 12px; }
+
+    /* ── AI 분석 모달 ── */
+    .modal-backdrop {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 1000;
+      align-items: center; justify-content: center;
+    }
+    .modal-backdrop.open { display: flex; }
+    .modal {
+      background: #1a1a1a; border: 1px solid #333;
+      border-radius: 8px; width: 90%; max-width: 560px;
+      max-height: 80vh; overflow-y: auto;
+      padding: 20px; position: relative;
+    }
+    .modal-header {
+      display: flex; justify-content: space-between;
+      align-items: flex-start; margin-bottom: 14px;
+      border-bottom: 1px solid #2a2a2a; padding-bottom: 10px;
+    }
+    .modal-title { font-size: 14px; font-weight: 700; color: #e8e8e8; }
+    .modal-subtitle { font-size: 11px; color: #666; margin-top: 2px; }
+    .modal-close {
+      background: none; border: none; color: #666;
+      cursor: pointer; font-size: 18px; line-height: 1;
+      padding: 0 4px;
+    }
+    .modal-close:hover { color: #ccc; }
+    .modal-placeholder {
+      text-align: center; padding: 40px 20px;
+      color: #555; border: 1px dashed #333;
+      border-radius: 6px;
+    }
+    .modal-placeholder .icon { font-size: 32px; margin-bottom: 10px; }
+    .modal-placeholder p { font-size: 13px; }
+    .modal-placeholder small { font-size: 11px; color: #444; display: block; margin-top: 6px; }
+
+    /* ── Responsive ── */
+    @media (max-width: 640px) {
+      .section-row { grid-template-columns: 1fr; }
+      .thumb { width: 110px; height: 62px; }
+      .thumb-sm { width: 90px; height: 51px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="logo">▶ YouTube <span>인기 탐색기</span></div>
+</div>
+
+<!-- API Key Bar -->
+<div class="api-bar">
+  <label for="apiKey">API Key</label>
+  <input type="password" id="apiKey" class="api-input" placeholder="YouTube Data API v3 키 입력">
+  <button class="btn-sm" onclick="saveApiKey()">저장</button>
+  <span id="apiStatus" class="api-status"></span>
+</div>
+
+<!-- Search + Filters -->
+<div class="search-section">
+  <div class="search-row">
+    <input type="text" id="searchQuery" class="search-input"
+           placeholder="검색어 입력 (비워두면 오늘 인기 영상 자동 조회)"
+           onkeydown="if(event.key==='Enter') doSearch()">
+    <button class="btn-search" onclick="doSearch()">검색</button>
+  </div>
+  <div class="filter-row">
+    <div class="filter-group">
+      <span class="filter-label">정렬</span>
+      <select id="fOrder">
+        <option value="viewCount">조회수순</option>
+        <option value="relevance">관련도순</option>
+        <option value="date">최신순</option>
+        <option value="rating">평점순</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">기간</span>
+      <div class="period-btns">
+        <button class="period-btn active" data-p="today"   onclick="setPeriod(this)">오늘</button>
+        <button class="period-btn"        data-p="week"    onclick="setPeriod(this)">1주일</button>
+        <button class="period-btn"        data-p="month"   onclick="setPeriod(this)">1개월</button>
+        <button class="period-btn"        data-p="3months" onclick="setPeriod(this)">3개월</button>
+        <button class="period-btn"        data-p="all"     onclick="setPeriod(this)">전체</button>
+      </div>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">길이</span>
+      <select id="fDuration">
+        <option value="any">전체</option>
+        <option value="short" selected>4분↓</option>
+        <option value="medium">4~20분</option>
+        <option value="long">20분↑</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">지역</span>
+      <select id="fRegion">
+        <option value="KR">🇰🇷 한국</option>
+        <option value="US">🇺🇸 미국</option>
+        <option value="JP">🇯🇵 일본</option>
+        <option value="GB">🇬🇧 영국</option>
+        <option value="TW">🇹🇼 대만</option>
+        <option value="CN">🇨🇳 중국</option>
+      </select>
+    </div>
+    <button class="adv-toggle" onclick="toggleAdv()" id="advToggle">▼ 고급필터</button>
+  </div>
+</div>
+
+<!-- Advanced Filters -->
+<div class="filter-advanced" id="filterAdv">
+  <div class="filter-row">
+    <div class="filter-group">
+      <span class="filter-label">카테고리</span>
+      <select id="fCategory">
+        <option value="">전체</option>
+        <option value="1">영화/애니</option>
+        <option value="10">음악</option>
+        <option value="15">반려동물</option>
+        <option value="17">스포츠</option>
+        <option value="20">게임</option>
+        <option value="22">블로그</option>
+        <option value="23">코미디</option>
+        <option value="24">엔터테인먼트</option>
+        <option value="25">뉴스/정치</option>
+        <option value="26">노하우/스타일</option>
+        <option value="27">교육</option>
+        <option value="28">과학/기술</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">언어</span>
+      <select id="fLang">
+        <option value="ko">한국어</option>
+        <option value="en">영어</option>
+        <option value="ja">일본어</option>
+        <option value="zh-Hans">중국어</option>
+        <option value="">전체</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">화질</span>
+      <select id="fDefinition">
+        <option value="any">전체</option>
+        <option value="high">HD</option>
+        <option value="standard">SD</option>
+      </select>
+    </div>
+    <div class="filter-group">
+      <span class="filter-label">안전검색</span>
+      <select id="fSafe">
+        <option value="moderate">보통</option>
+        <option value="strict">엄격</option>
+        <option value="none">없음</option>
+      </select>
+    </div>
+  </div>
+</div>
+
+<!-- Results Info -->
+<div class="results-info" id="resultsInfo" style="display:none;"></div>
+
+<!-- Error -->
+<div id="errorBox"></div>
+
+<!-- 3단 레이아웃 -->
+<div class="layout-container" id="layoutContainer" style="display:none;">
+
+  <!-- 1단: 전체 효율성 TOP -->
+  <div class="section-top">
+    <div class="section-title">
+      <span class="badge">1단</span> 전체 효율성 TOP
+      <span id="sec1Count" style="font-size:11px;color:#555;font-weight:400;"></span>
+    </div>
+    <div id="sec1List"></div>
+    <div class="load-more-wrap" id="loadMoreWrap">
+      <button class="btn-more" onclick="showMoreSec1()">더 보기</button>
+    </div>
+  </div>
+
+  <!-- 2단 3단: 카테고리별 TOP -->
+  <div class="section-row">
+    <div class="section-col">
+      <div class="section-title">
+        <span class="badge">2단</span>
+        <span id="sec2Title">카테고리 A</span>
+        <span class="cat-badge" id="sec2CatBadge"></span>
+      </div>
+      <div id="sec2List"></div>
+    </div>
+    <div class="section-col">
+      <div class="section-title">
+        <span class="badge">3단</span>
+        <span id="sec3Title">카테고리 B</span>
+        <span class="cat-badge" id="sec3CatBadge"></span>
+      </div>
+      <div id="sec3List"></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- Initial loading -->
+<div id="initBox" class="loading-box">
+  <div class="spinner"></div>
+  오늘의 인기 영상을 불러오는 중...
+</div>
+
+<!-- AI 분석 모달 -->
+<div class="modal-backdrop" id="aiModal" onclick="closeModal(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="modalVideoTitle">AI 분석</div>
+        <div class="modal-subtitle" id="modalVideoMeta"></div>
+      </div>
+      <button class="modal-close" onclick="closeModalDirect()">✕</button>
+    </div>
+    <div class="modal-placeholder">
+      <div class="icon">🤖</div>
+      <p>AI 분석 기능 준비 중입니다.</p>
+      <small>AI_ANALYSIS_SPEC.md 명세 완료 후 개발 예정</small>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── 카테고리 맵 ──────────────────────────────────
+const CAT_MAP = {
+  '1':'영화/애니','2':'자동차','10':'음악','15':'반려동물',
+  '17':'스포츠','19':'여행','20':'게임','22':'블로그',
+  '23':'코미디','24':'엔터테인먼트','25':'뉴스/정치',
+  '26':'스타일','27':'교육','28':'과학/기술','29':'비영리'
+};
+
+// ── State ────────────────────────────────────────
+let state = {
+  period: 'today',
+  advOpen: false,
+  allVideos: [],       // 전체 결과 (효율성 정렬)
+  sec1Shown: 10,       // 1단 표시 개수
+};
+
+// ── Init ─────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  const saved = localStorage.getItem('yt_api_key');
+  if (saved) {
+    document.getElementById('apiKey').value = saved;
+    document.getElementById('apiStatus').textContent = '✓ 저장됨';
+  }
+  // 최초 진입 시 자동 검색
+  autoSearch();
+});
+
+// ── API Key ──────────────────────────────────────
+function saveApiKey() {
+  const key = document.getElementById('apiKey').value.trim();
+  if (!key) return;
+  localStorage.setItem('yt_api_key', key);
+  document.getElementById('apiStatus').textContent = '✓ 저장됨';
+  setTimeout(() => { document.getElementById('apiStatus').textContent = ''; }, 2000);
+}
+function getApiKey() { return document.getElementById('apiKey').value.trim(); }
+
+// ── Period ───────────────────────────────────────
+function setPeriod(btn) {
+  document.querySelectorAll('.period-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  state.period = btn.dataset.p;
+}
+function getPeriodISO(period) {
+  const now = new Date();
+  const d = new Date(now);
+  switch (period) {
+    case 'today':   d.setHours(0,0,0,0); return d.toISOString();
+    case 'week':    d.setDate(d.getDate()-7); return d.toISOString();
+    case 'month':   d.setMonth(d.getMonth()-1); return d.toISOString();
+    case '3months': d.setMonth(d.getMonth()-3); return d.toISOString();
+    default: return null;
+  }
+}
+
+// ── Advanced Filter ──────────────────────────────
+function toggleAdv() {
+  state.advOpen = !state.advOpen;
+  document.getElementById('filterAdv').classList.toggle('open', state.advOpen);
+  document.getElementById('advToggle').textContent = (state.advOpen ? '▲' : '▼') + ' 고급필터';
+}
+
+// ── Build Params ─────────────────────────────────
+function buildParams(pageToken = null) {
+  const params = {
+    part: 'snippet', type: 'video', maxResults: 50,
+    order: document.getElementById('fOrder').value,
+    regionCode: document.getElementById('fRegion').value,
+    videoDuration: document.getElementById('fDuration').value,
+    videoDefinition: document.getElementById('fDefinition').value,
+    safeSearch: document.getElementById('fSafe').value,
+    key: getApiKey(),
+  };
+  const q = document.getElementById('searchQuery').value.trim();
+  if (q) params.q = q;
+  const cat = document.getElementById('fCategory').value;
+  if (cat) params.videoCategoryId = cat;
+  const lang = document.getElementById('fLang').value;
+  if (lang) params.relevanceLanguage = lang;
+  const after = getPeriodISO(state.period);
+  if (after) params.publishedAfter = after;
+  if (pageToken) params.pageToken = pageToken;
+  return params;
+}
+
+// ── Auto Search (최초 진입) ───────────────────────
+async function autoSearch() {
+  if (!getApiKey()) {
+    document.getElementById('initBox').innerHTML =
+      '<div style="color:#666;font-size:13px;">상단에 YouTube Data API v3 키를 입력하고 검색하세요.</div>';
+    return;
+  }
+  await fetchAndRender(buildParams());
+}
+
+// ── Manual Search ────────────────────────────────
+async function doSearch() {
+  if (!getApiKey()) { showError('YouTube Data API v3 키를 입력해주세요.'); return; }
+  clearError();
+  document.getElementById('initBox').style.display = 'none';
+  document.getElementById('layoutContainer').style.display = 'none';
+  document.getElementById('resultsInfo').style.display = 'none';
+  document.getElementById('initBox').style.display = 'block';
+  document.getElementById('initBox').innerHTML =
+    '<div class="spinner"></div>검색 중...';
+  state.allVideos = [];
+  state.sec1Shown = 10;
+  await fetchAndRender(buildParams());
+}
+
+// ── Fetch & Render ───────────────────────────────
+async function fetchAndRender(params) {
+  try {
+    // ① search.list
+    const searchData = await fetchJson(
+      'https://www.googleapis.com/youtube/v3/search?' + new URLSearchParams(params)
+    );
+    if (searchData.error) throw new Error(searchData.error.message);
+
+    const items = (searchData.items || []).filter(i => i.id?.videoId);
+    if (items.length === 0) {
+      document.getElementById('initBox').innerHTML =
+        '<div class="empty-box">오늘 날짜에 해당하는 영상이 없습니다.<br>기간을 변경해보세요.</div>';
+      return;
+    }
+
+    const videoIds   = items.map(i => i.id.videoId).join(',');
+    const channelIds = [...new Set(items.map(i => i.snippet.channelId))].join(',');
+
+    // ② videos.list + channels.list 병렬
+    const [videoData, channelData] = await Promise.all([
+      fetchJson(`https://www.googleapis.com/youtube/v3/videos?part=statistics,snippet&id=${videoIds}&key=${params.key}`),
+      fetchJson(`https://www.googleapis.com/youtube/v3/channels?part=statistics&id=${channelIds}&key=${params.key}`),
+    ]);
+    if (videoData.error)   throw new Error(videoData.error.message);
+    if (channelData.error) throw new Error(channelData.error.message);
+
+    const videoMap   = Object.fromEntries((videoData.items   || []).map(v => [v.id, v]));
+    const channelMap = Object.fromEntries((channelData.items || []).map(c => [c.id, c]));
+
+    // ③ 데이터 가공
+    const videos = items.reduce((acc, item) => {
+      const vid = videoMap[item.id.videoId];
+      if (!vid) return acc;
+      const stats   = vid.statistics || {};
+      const snippet = vid.snippet    || item.snippet;
+      const ch      = channelMap[snippet.channelId] || {};
+      const subs    = parseInt(ch.statistics?.subscriberCount  || 0);
+      const views   = parseInt(stats.viewCount    || 0);
+      const likes   = parseInt(stats.likeCount    || 0);
+      const comments= parseInt(stats.commentCount || 0);
+      const catId   = snippet.categoryId || '';
+      const eff     = subs > 0 ? views / subs : 0;
+
+      acc.push({
+        videoId: item.id.videoId,
+        title: snippet.title,
+        channelTitle: snippet.channelTitle,
+        channelId: snippet.channelId,
+        publishedAt: snippet.publishedAt,
+        thumbnail: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || '',
+        catId, catName: CAT_MAP[catId] || '기타',
+        views, likes, comments, subs, eff
+      });
+      return acc;
+    }, []);
+
+    // ④ 효율성 내림차순 정렬
+    videos.sort((a, b) => b.eff - a.eff);
+    state.allVideos = videos;
+
+    // ⑤ 결과 정보
+    const total = searchData.pageInfo?.totalResults ?? 0;
+    const info  = document.getElementById('resultsInfo');
+    info.style.display = 'block';
+    info.innerHTML = `검색결과 약 <strong>${total.toLocaleString()}개</strong> · 효율성 기준 정렬`;
+
+    // ⑥ 렌더링
+    renderLayout();
+
+    document.getElementById('initBox').style.display = 'none';
+    document.getElementById('layoutContainer').style.display = 'block';
+
+  } catch (err) {
+    document.getElementById('initBox').style.display = 'none';
+    showError('오류: ' + err.message);
+  }
+}
+
+// ── Layout Render ────────────────────────────────
+function renderLayout() {
+  const all = state.allVideos;
+
+  // 1단 렌더링
+  renderSection1();
+
+  // 카테고리 자동 선정 (영상 수 기준 상위 2개)
+  const catCount = {};
+  all.forEach(v => {
+    if (v.catId) catCount[v.catId] = (catCount[v.catId] || 0) + 1;
+  });
+  const topCats = Object.entries(catCount)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 2)
+    .map(([id]) => id);
+
+  const cat1 = topCats[0] || null;
+  const cat2 = topCats[1] || null;
+
+  // 2단
+  if (cat1) {
+    document.getElementById('sec2Title').textContent = CAT_MAP[cat1] || '카테고리 A';
+    document.getElementById('sec2CatBadge').textContent = `${catCount[cat1]}개`;
+    const filtered = all.filter(v => v.catId === cat1).slice(0, 8);
+    renderCards(document.getElementById('sec2List'), filtered, true);
+  }
+
+  // 3단
+  if (cat2) {
+    document.getElementById('sec3Title').textContent = CAT_MAP[cat2] || '카테고리 B';
+    document.getElementById('sec3CatBadge').textContent = `${catCount[cat2]}개`;
+    const filtered = all.filter(v => v.catId === cat2).slice(0, 8);
+    renderCards(document.getElementById('sec3List'), filtered, true);
+  }
+}
+
+function renderSection1() {
+  const shown = state.allVideos.slice(0, state.sec1Shown);
+  const list  = document.getElementById('sec1List');
+  list.innerHTML = '';
+  document.getElementById('sec1Count').textContent =
+    `(${state.allVideos.length}개 중 ${shown.length}개 표시)`;
+  renderCards(list, shown, false);
+
+  const loadMore = document.getElementById('loadMoreWrap');
+  loadMore.style.display = state.sec1Shown < state.allVideos.length ? 'block' : 'none';
+}
+
+function showMoreSec1() {
+  state.sec1Shown = Math.min(state.sec1Shown + 10, state.allVideos.length);
+  renderSection1();
+}
+
+function renderCards(container, videos, small) {
+  if (videos.length === 0) {
+    container.innerHTML = '<div class="empty-box">해당 카테고리 영상 없음</div>';
+    return;
+  }
+  videos.forEach(v => container.appendChild(buildCard(v, small)));
+}
+
+// ── Card ─────────────────────────────────────────
+function buildCard(v, small) {
+  const d = new Date(v.publishedAt);
+  const dateStr = `${d.getFullYear()}.${pad(d.getMonth()+1)}.${pad(d.getDate())}`;
+
+  const effStr = v.eff > 0 ? v.eff.toFixed(1) + '배' : '—';
+  let effClass = 'eff-low', effIcon = '', effTag = '효율';
+  if      (v.eff >= 50) { effClass = 'eff-ultra'; effIcon = '🔥'; effTag = '초급상승'; }
+  else if (v.eff >= 10) { effClass = 'eff-high';  effIcon = '⚡'; effTag = '급상승';   }
+  else if (v.eff >= 3)  { effClass = 'eff-mid';   effIcon = '↑';  effTag = '인기';     }
+
+  const thumbClass = small ? 'thumb thumb-sm' : 'thumb';
+
+  const card = document.createElement('div');
+  card.className = 'video-card';
+  card.innerHTML = `
+    <div class="thumb-wrap">
+      <a href="https://www.youtube.com/watch?v=${esc(v.videoId)}" target="_blank" rel="noopener">
+        <img class="${thumbClass}" src="${esc(v.thumbnail)}" alt="" loading="lazy">
+      </a>
+    </div>
+    <div class="video-info">
+      <div class="video-title">
+        <a href="https://www.youtube.com/watch?v=${esc(v.videoId)}" target="_blank" rel="noopener">${esc(v.title)}</a>
+      </div>
+      <div class="video-meta">
+        <span class="channel">${esc(v.channelTitle)}</span> · ${dateStr}
+      </div>
+      <div class="meta-tags">
+        ${v.catName ? `<span class="tag">${esc(v.catName)}</span>` : ''}
+      </div>
+      <div class="stat-row">
+        <span>👁 ${fmt(v.views)}</span>
+        <span>👍 ${fmt(v.likes)}</span>
+        <span>💬 ${fmt(v.comments)}</span>
+        <span>👥 ${fmt(v.subs)}</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;">
+        <span class="eff-badge ${effClass}">${effIcon} ${effTag} ${effStr}</span>
+        <button class="btn-ai" onclick="openAiModal(${JSON.stringify(esc(v.title))}, ${JSON.stringify(esc(v.channelTitle))})">🤖 AI 분석</button>
+      </div>
+    </div>
+  `;
+  return card;
+}
+
+// ── AI Modal ─────────────────────────────────────
+function openAiModal(title, channel) {
+  document.getElementById('modalVideoTitle').textContent = title;
+  document.getElementById('modalVideoMeta').textContent  = channel;
+  document.getElementById('aiModal').classList.add('open');
+}
+function closeModal(e) {
+  if (e.target === document.getElementById('aiModal')) closeModalDirect();
+}
+function closeModalDirect() {
+  document.getElementById('aiModal').classList.remove('open');
+}
+
+// ── Helpers ───────────────────────────────────────
+async function fetchJson(url) {
+  const res = await fetch(url);
+  return res.json();
+}
+function fmt(n) {
+  n = Number(n);
+  if (n >= 100_000_000) return (n/100_000_000).toFixed(1)+'억';
+  if (n >= 10_000)      return (n/10_000).toFixed(1)+'만';
+  if (n >= 1_000)       return (n/1_000).toFixed(1)+'K';
+  return n.toLocaleString();
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function esc(str) {
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+}
+function showError(msg) {
+  document.getElementById('errorBox').innerHTML = `<div class="error-msg">${esc(msg)}</div>`;
+}
+function clearError() { document.getElementById('errorBox').innerHTML = ''; }
+</script>
+</body>
+</html>

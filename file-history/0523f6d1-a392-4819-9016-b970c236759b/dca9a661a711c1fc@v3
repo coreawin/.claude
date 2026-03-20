@@ -1,0 +1,34 @@
+# Project Memory
+
+## User Preferences
+- ntfy channel: `coreawin-claude-code`
+- ntfy server: `https://ntfy.sh`
+- Korean text in ntfy: English only (Korean → file attachment issue on Windows bash + curl)
+- ntfy format: Title = 주 메시지(짧게), Body = 세부 내용
+
+## Environment
+- Platform: Windows 11, shell: bash
+- Node.js: v24.13.0
+- Playwright + Chromium: installed at `C:\Users\corea\AppData\Local\ms-playwright\`
+- Working directory: `D:\Claude Code`
+- npm project: `D:\Claude Code\package.json` (playwright 설치됨)
+
+## 주요 프로젝트
+- **web-verify-qocr**: `D:\Claude Code\web-verify-qocr\`
+  - OCR Dashboard 웹 검증 자동화
+  - 스킬: cn-web-verify
+  - 스펙: `web-verfity-qocr-spec.md` (메뉴 선택 + 기능 정의)
+  - UI 캐시: `ui-cache.md` (셀렉터 재활용)
+  - 실행: `node scripts/verify.js`
+
+## 업무 마무리 절차 (Wrap-up)
+모든 업무 종료 시 반드시 아래 순서를 따른다:
+1. 세션 중 변경/생성된 SKILL 파일 목록 정리
+2. MEMORY.md에 저장 안 된 패턴/설정 업데이트
+3. 사용자에게 변경 내용 요약 보고 후 확인
+4. 확인 완료 후 업무 종료
+
+## 실패 시 행동 원칙
+- 실패 발생 즉시 멈추고 사용자에게 보고
+- 자체 수정 후 재시도 시 반드시 사용자 허락 먼저
+- 연속 실패 시 원인 분석 결과를 정리해서 보고
