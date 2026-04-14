@@ -1,0 +1,49 @@
+# 개발 진행 상황
+
+## ✅ Phase C: 자연어 검색 테스트 (완료)
+- `src/search_test.html` - 검색 기능 테스트 페이지
+- `src/search_data.js` - 5개 질의 + 키워드 맵핑 데이터
+- `src/common.js` - 검색 알고리즘 + 결과 렌더링 함수
+- 상태: **검증 완료** ✓ (사용자 확인: "결과가 잘 나옵니다")
+
+## ✅ Phase A: 회원 페이지 구현 (완료)
+- `src/member.html` - 회원용 메인 페이지
+  - 상단 검색창 (search-input)
+  - 추천 차량 그리드 (recommended-section)
+  - 검색 결과 컨테이너 (search-results-container)
+  - 사이드바 (고객 정보, 신용점수, 여정 탭)
+  
+- `src/member.js` - 회원 페이지 로직
+  - DATA.A: 김준호 (38세, 고성능 세단 선호)
+  - DATA.B: 이수진 (28세, 연비 좋은 SUV 선호)
+  - 함수: renderMain, onSelectA/B, setTab, apply, 사용자 전환 등
+  - 검색과 추천 차량 통합
+
+- `src/member_test.html` - 회원 페이지 테스트 페이지
+  - 8가지 항목 검증: 데이터 로드, 함수 정의, 검색 알고리즘 등
+
+- 상태: **구현 완료** ✓
+
+## ⏳ Phase B: 비회원 페이지 구현 (예정)
+- `src/non_member.html` - 비회원용 페이지
+  - 기존 demo_non_member.html의 AI 채팅 기능 **보존**
+  - 상단에 검색창 추가
+  - FAB 버튼(🤖) 클릭 시 시나리오 자동 재생
+  - 성별 → 나이 → 직업 → 우선순위 → 차종 선택
+  
+- `src/non_member.js` - 비회원 페이지 로직
+  - SCENARIO 배열 기반 AI 대화
+  - openChat, playScenario, 타이핑 인디케이터 등
+  - 시나리오 완료 후 추천 차량 표시
+
+## 📊 공유 리소스
+- `src/common.js` - CAR_IMGS 경로, 검색 함수 (member, non_member 공유)
+- `src/search_data.js` - SEARCH_QUERIES, SEARCH_RESULTS (member, non_member 공유)
+- `assets/images/` - 8개 차량 이미지 (PNG 파일)
+  - g80.png, bmw5.png, k8.png, grandeur.png, sorento.png, tucson.png, nx350h.png, santafe.png
+
+## 다음 단계
+1. non_member.html 생성 (demo_non_member.html 기반)
+2. non_member.js 작성 (AI 채팅 로직)
+3. member + non_member 통합 테스트
+4. 최종 검증

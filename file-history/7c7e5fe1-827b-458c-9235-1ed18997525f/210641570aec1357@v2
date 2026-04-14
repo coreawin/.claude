@@ -1,0 +1,344 @@
+/**
+ * Wooricapital Auto Recommendation Prototype
+ * 자동차 상품 추천 로직 및 DOM 조작
+ */
+
+// ============================================
+// 상수 및 전역 변수
+// ============================================
+
+let allProducts = [];
+let allFinancingOptions = [];
+let userProfile = {};
+let selectedProduct = null;
+
+// ============================================
+// 초기화 (DOMContentLoaded)
+// ============================================
+
+document.addEventListener('DOMContentLoaded', function () {
+    console.log('페이지 로드 완료. 초기화 시작...');
+
+    // 데이터 로드
+    loadProductsData();
+    loadFinancingData();
+
+    // 이벤트 리스너 설정
+    setupEventListeners();
+});
+
+// ============================================
+// 데이터 로드
+// ============================================
+
+function loadProductsData() {
+    /**
+     * TODO: data/products.json 파일에서 데이터 로드
+     * 현재는 샘플 데이터 사용
+     */
+    allProducts = [
+        {
+            id: 'car_001',
+            brand: 'Hyundai',
+            model: 'Ioniq 5',
+            category: 'SUV',
+            price: 45000000,
+            image: 'assets/images/car_001.jpg',
+            fuelEfficiency: '5.2km/L',
+            engine: '2.0L Turbo',
+            transmission: 'Automatic',
+            seats: 5,
+            features: ['자율주행', '회생제동', 'LED헤드라이트'],
+            tags: ['환경친화', '고급', '안전'],
+            recommendWeights: {
+                performance: 8,
+                efficiency: 9,
+                design: 7,
+                safety: 9
+            }
+        },
+        // 추가 샘플 데이터는 여기에 추가됨
+    ];
+
+    console.log(`${allProducts.length}개의 자동차 상품 로드됨`);
+}
+
+function loadFinancingData() {
+    /**
+     * TODO: data/financing.json 파일에서 데이터 로드
+     * 현재는 샘플 데이터 사용
+     */
+    allFinancingOptions = [
+        {
+            id: 'loan_001',
+            name: '우리 일반대출',
+            term: 60,
+            rate: 3.5,
+            monthlyPayment: 850000,
+            requirements: {
+                minIncome: 3000000,
+                minCredit: '7등급'
+            }
+        },
+        // 추가 샘플 데이터는 여기에 추가됨
+    ];
+
+    console.log(`${allFinancingOptions.length}개의 금융상품 로드됨`);
+}
+
+// ============================================
+// 이벤트 리스너
+// ============================================
+
+function setupEventListeners() {
+    const userForm = document.getElementById('user-form');
+    if (userForm) {
+        userForm.addEventListener('submit', handleFormSubmit);
+    }
+}
+
+// ============================================
+// 폼 제출 처리
+// ============================================
+
+function handleFormSubmit(e) {
+    e.preventDefault();
+
+    console.log('폼 제출됨');
+
+    // TODO: 폼에서 사용자 정보 수집
+    userProfile = {
+        name: '홍길동',
+        age: 35,
+        budget: 50000000,
+        preferences: {
+            performance: 8,
+            efficiency: 7,
+            design: 6,
+            safety: 9
+        },
+        creditScore: '1등급'
+    };
+
+    // 상품 추천
+    const recommendedProducts = getRecommendedProducts();
+
+    // 화면에 표시
+    displayResults(recommendedProducts);
+
+    // 결과 섹션으로 스크롤
+    document.getElementById('result-section').style.display = 'block';
+    document.getElementById('result-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================
+// 상품 추천 알고리즘
+// ============================================
+
+function getRecommendedProducts() {
+    /**
+     * TODO: 실제 추천 알고리즘 구현
+     * 현재는 모든 상품을 반환
+     */
+
+    let filtered = allProducts.filter(product => {
+        // 예산 필터링
+        if (product.price > userProfile.budget) {
+            return false;
+        }
+
+        // 신용 점수 필터링 (필요시)
+
+        return true;
+    });
+
+    // 추천 점수 계산
+    filtered = filtered.map(product => {
+        let score = 0;
+
+        // TODO: 가중치 계산 로직 구현
+        for (let key in userProfile.preferences) {
+            if (product.recommendWeights[key]) {
+                score += (userProfile.preferences[key] * product.recommendWeights[key]) / 10;
+            }
+        }
+
+        return {
+            ...product,
+            recommendScore: Math.round(score)
+        };
+    });
+
+    // 추천 점수로 정렬
+    filtered.sort((a, b) => b.recommendScore - a.recommendScore);
+
+    return filtered;
+}
+
+// ============================================
+// 결과 표시
+// ============================================
+
+function displayResults(products) {
+    const container = document.getElementById('products-container');
+    container.innerHTML = '';
+
+    if (products.length === 0) {
+        container.innerHTML = '<p class="text-center">조건에 맞는 상품이 없습니다.</p>';
+        return;
+    }
+
+    products.forEach(product => {
+        const card = createProductCard(product);
+        container.appendChild(card);
+    });
+}
+
+function createProductCard(product) {
+    const card = document.createElement('div');
+    card.className = 'product-card';
+
+    card.innerHTML = `
+        <div class="product-image">
+            ${product.image ? `<img src="${product.image}" alt="${product.model}">` : '이미지 준비 중'}
+        </div>
+        <div class="product-info">
+            <div class="product-brand">${product.brand}</div>
+            <div class="product-name">${product.model}</div>
+            <div class="product-price">${formatPrice(product.price)}</div>
+
+            <ul class="product-features">
+                ${product.features.map(f => `<li>${f}</li>`).join('')}
+            </ul>
+
+            <div class="product-score">
+                <span class="score-label">추천도</span>
+                <span class="score-value">${product.recommendScore || 0}점</span>
+            </div>
+
+            <div class="product-actions">
+                <button class="btn-primary" onclick="selectProduct('${product.id}')">
+                    선택
+                </button>
+                <button class="btn-secondary" onclick="viewDetails('${product.id}')">
+                    상세보기
+                </button>
+            </div>
+        </div>
+    `;
+
+    return card;
+}
+
+// ============================================
+// 상품 선택
+// ============================================
+
+function selectProduct(productId) {
+    selectedProduct = allProducts.find(p => p.id === productId);
+
+    if (!selectedProduct) {
+        alert('상품을 찾을 수 없습니다.');
+        return;
+    }
+
+    console.log('선택된 상품:', selectedProduct);
+
+    // 금융상품 화면으로 이동
+    displayFinancingOptions(selectedProduct);
+
+    document.getElementById('financing-section').style.display = 'block';
+    document.getElementById('financing-section').scrollIntoView({ behavior: 'smooth' });
+}
+
+function viewDetails(productId) {
+    const product = allProducts.find(p => p.id === productId);
+
+    if (!product) {
+        alert('상품을 찾을 수 없습니다.');
+        return;
+    }
+
+    // TODO: 상세 정보 모달 또는 별도 페이지로 표시
+    alert(`${product.brand} ${product.model}\n\n가격: ${formatPrice(product.price)}\n엔진: ${product.engine}`);
+}
+
+// ============================================
+// 금융상품 표시
+// ============================================
+
+function displayFinancingOptions(product) {
+    /**
+     * TODO: 선택한 상품에 맞는 금융상품 필터링
+     */
+    const container = document.getElementById('financing-container');
+    container.innerHTML = '';
+
+    const filtered = allFinancingOptions.map(financing => {
+        return {
+            ...financing,
+            monthlyPayment: calculateMonthlyPayment(product.price, financing.rate, financing.term)
+        };
+    });
+
+    const optionsHtml = filtered.map((financing, idx) => `
+        <div class="financing-card ${idx === 0 ? 'recommended' : ''}">
+            ${idx === 0 ? '<span class="financing-badge">추천</span>' : ''}
+            <h3 class="financing-name">${financing.name}</h3>
+            <ul class="financing-details">
+                <li><strong>대출 기간:</strong> ${financing.term}개월</li>
+                <li><strong>이율:</strong> ${financing.rate}%</li>
+                <li><strong>대출액:</strong> ${formatPrice(product.price)}</li>
+            </ul>
+            <div class="monthly-payment">
+                <span class="monthly-payment-label">예상 월 납부금</span>
+                <span class="monthly-payment-value">${formatPrice(financing.monthlyPayment)}</span>
+            </div>
+            <button class="btn-primary">선택하기</button>
+        </div>
+    `).join('');
+
+    container.innerHTML = `
+        <div class="financing-options">
+            ${optionsHtml}
+        </div>
+    `;
+}
+
+// ============================================
+// 유틸리티 함수
+// ============================================
+
+function formatPrice(price) {
+    /**
+     * 가격을 한국 통화 형식으로 포맷
+     * 예: 45000000 → "4,500만원"
+     */
+    if (price >= 10000000) {
+        return `${(price / 10000000).toFixed(1)}천만원`;
+    } else if (price >= 1000000) {
+        return `${(price / 1000000).toFixed(0)}백만원`;
+    }
+    return `${price.toLocaleString()}원`;
+}
+
+function calculateMonthlyPayment(principal, annualRate, months) {
+    /**
+     * 월 납부금 계산 (원리금균등분할 방식)
+     * 공식: M = P * (r * (1 + r)^n) / ((1 + r)^n - 1)
+     * P: 원금, r: 월이율, n: 개월 수
+     */
+    const monthlyRate = annualRate / 12 / 100;
+
+    if (monthlyRate === 0) {
+        return Math.round(principal / months);
+    }
+
+    const numerator = monthlyRate * Math.pow(1 + monthlyRate, months);
+    const denominator = Math.pow(1 + monthlyRate, months) - 1;
+    const monthlyPayment = principal * (numerator / denominator);
+
+    return Math.round(monthlyPayment);
+}
+
+console.log('스크립트 로드 완료');

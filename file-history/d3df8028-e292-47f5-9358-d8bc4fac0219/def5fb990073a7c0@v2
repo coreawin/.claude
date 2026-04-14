@@ -1,0 +1,64 @@
+{
+  "name": "renewal-page-create",
+  "displayName": "이미지 → HTML 생성",
+  "version": "1.0.0",
+  "description": "스크린샷 이미지를 분석하여 HTML + CSS 페이지 자동 생성",
+  "author": "Claude Code",
+  "category": "web-development",
+  "tags": [
+    "prototype",
+    "html",
+    "image-to-code",
+    "ui",
+    "frontend"
+  ],
+  "isUserInvocable": true,
+  "invocationExample": "/renewal-page-create",
+  "minimumModelVersion": "claude-3-5-sonnet",
+  "requiredContext": {
+    "workingDirectory": "D:\\Claude Code\\renewal-page",
+    "files": []
+  },
+  "inputParameters": [
+    {
+      "name": "projectName",
+      "type": "string",
+      "description": "프로젝트 폴더명 (예: login-page, dashboard-v2)",
+      "required": true
+    },
+    {
+      "name": "screenshot",
+      "type": "file",
+      "description": "변환할 스크린샷 이미지 (PNG, JPG)",
+      "required": true
+    },
+    {
+      "name": "requirements",
+      "type": "string",
+      "description": "색상, 폰트, 기능 등 추가 요구사항 (선택)",
+      "required": false
+    }
+  ],
+  "outputArtifacts": [
+    {
+      "type": "file",
+      "path": "projects/{projectName}/output/index.html",
+      "description": "생성된 HTML 파일"
+    },
+    {
+      "type": "file",
+      "path": "projects/{projectName}/spec.md",
+      "description": "변환 사양 및 요구사항"
+    }
+  ],
+  "supportedPlatforms": [
+    "all"
+  ],
+  "dependencies": [],
+  "configuration": {
+    "generateSpecFile": true,
+    "includeCSS": true,
+    "responsive": true,
+    "semanticHTML": true
+  }
+}

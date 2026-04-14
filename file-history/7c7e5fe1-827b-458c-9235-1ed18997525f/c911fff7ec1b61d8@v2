@@ -1,0 +1,90 @@
+[
+  {
+    "id": "car_001",
+    "brand": "Hyundai",
+    "model": "Ioniq 5",
+    "category": "SUV",
+    "price": 45000000,
+    "image": "assets/images/car_001.jpg",
+    "specs": {
+      "fuelEfficiency": "5.2km/L",
+      "engine": "2.0L Turbo",
+      "transmission": "Automatic",
+      "seats": 5
+    },
+    "features": ["자율주행", "회생제동", "LED헤드라이트"],
+    "tags": ["환경친화", "고급", "안전"],
+    "recommendWeights": {
+      "performance": 8,
+      "efficiency": 9,
+      "design": 7,
+      "safety": 9
+    }
+  },
+  {
+    "id": "car_002",
+    "brand": "Kia",
+    "model": "Sportage",
+    "category": "SUV",
+    "price": 35000000,
+    "image": "assets/images/car_002.jpg",
+    "specs": {
+      "fuelEfficiency": "9.5km/L",
+      "engine": "2.0L",
+      "transmission": "Automatic",
+      "seats": 5
+    },
+    "features": ["스마트 키", "후방카메라", "에어컨"],
+    "tags": ["합리적", "실용적"],
+    "recommendWeights": {
+      "performance": 7,
+      "efficiency": 8,
+      "design": 6,
+      "safety": 8
+    }
+  },
+  {
+    "id": "car_003",
+    "brand": "BMW",
+    "model": "X5",
+    "category": "SUV",
+    "price": 85000000,
+    "image": "assets/images/car_003.jpg",
+    "specs": {
+      "fuelEfficiency": "7.0km/L",
+      "engine": "3.0L Twin Turbo",
+      "transmission": "Automatic",
+      "seats": 5
+    },
+    "features": ["전동시트", "파노라마 선루프", "프리미엄 오디오"],
+    "tags": ["럭셔리", "성능", "안전"],
+    "recommendWeights": {
+      "performance": 9,
+      "efficiency": 6,
+      "design": 9,
+      "safety": 9
+    }
+  },
+  {
+    "id": "car_004",
+    "brand": "Toyota",
+    "model": "Corolla",
+    "category": "Sedan",
+    "price": 28000000,
+    "image": "assets/images/car_004.jpg",
+    "specs": {
+      "fuelEfficiency": "12.5km/L",
+      "engine": "1.8L Hybrid",
+      "transmission": "CVT",
+      "seats": 5
+    },
+    "features": ["하이브리드", "자동 주차", "안개등"],
+    "tags": ["경제적", "환경친화"],
+    "recommendWeights": {
+      "performance": 6,
+      "efficiency": 10,
+      "design": 6,
+      "safety": 8
+    }
+  }
+]

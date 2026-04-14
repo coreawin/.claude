@@ -1,0 +1,383 @@
+/**
+ * Wooricapital Auto Recommendation Prototype
+ * 고객별 맞춤형 자동차 추천
+ */
+
+// ============================================
+// 전역 변수
+// ============================================
+
+let allCustomers = [];
+let allProducts = [];
+let currentCustomer = null;
+let filteredProducts = [];
+
+// ============================================
+// 초기화
+// ============================================
+
+document.addEventListener('DOMContentLoaded', async function () {
+    console.log('페이지 로드 완료. 데이터 로딩...');
+
+    try {
+        // 데이터 로드
+        await loadCustomers();
+        await loadProducts();
+
+        // 첫 번째 고객으로 자동 설정 (선택 모달 표시)
+        showCustomerSelection();
+
+    } catch (error) {
+        console.error('데이터 로드 실패:', error);
+    }
+});
+
+// ============================================
+// 데이터 로드
+// ============================================
+
+async function loadCustomers() {
+    try {
+        const response = await fetch('data/customers.json');
+        allCustomers = await response.json();
+        console.log('고객 데이터 로드됨:', allCustomers.length);
+        return allCustomers;
+    } catch (error) {
+        console.error('고객 데이터 로드 실패:', error);
+        // 폴백 데이터
+        allCustomers = [
+            {
+                id: 'cust_001',
+                name: '김준호',
+                gender: '남',
+                age: '30대',
+                creditScore: 930,
+                currentCar: '더뉴스포티지(NQ5)',
+                expectedFeature: '주행성능',
+                preferredCarType: '세단',
+                preferences: { performance: 9, efficiency: 6, design: 7, safety: 8, comfort: 7 },
+                isGuest: false,
+                avatar: '👨'
+            },
+            {
+                id: 'cust_002',
+                name: '이수진',
+                gender: '여',
+                age: '20대',
+                creditScore: 950,
+                currentCar: 'C-CLASS(W206)',
+                expectedFeature: '연비',
+                preferredCarType: 'SUV',
+                preferences: { performance: 6, efficiency: 10, design: 8, safety: 9, comfort: 8 },
+                isGuest: false,
+                avatar: '👩'
+            },
+            {
+                id: 'cust_guest',
+                name: '최승훈',
+                gender: '남',
+                age: '미정',
+                creditScore: 0,
+                currentCar: '없음',
+                expectedFeature: '인기차종',
+                preferredCarType: '전체',
+                preferences: { performance: 5, efficiency: 5, design: 5, safety: 5, comfort: 5 },
+                isGuest: true,
+                avatar: '👤'
+            }
+        ];
+    }
+}
+
+async function loadProducts() {
+    try {
+        const response = await fetch('data/products.json');
+        allProducts = await response.json();
+        console.log('상품 데이터 로드됨:', allProducts.length);
+        return allProducts;
+    } catch (error) {
+        console.error('상품 데이터 로드 실패:', error);
+        // 샘플 데이터 사용
+        allProducts = [
+            {
+                id: 'car_001',
+                brand: 'Hyundai',
+                model: 'Ioniq 5',
+                category: 'SUV',
+                price: 45000000,
+                fuelEfficiency: '5.2km/L',
+                engine: '2.0L Turbo',
+                transmission: 'Automatic',
+                seats: 5,
+                features: ['자율주행', '회생제동', 'LED헤드라이트'],
+                tags: ['환경친화', '고급', '안전'],
+                weights: { performance: 8, efficiency: 9, design: 7, safety: 9, comfort: 8 }
+            },
+            {
+                id: 'car_002',
+                brand: 'Kia',
+                model: 'Sportage',
+                category: 'SUV',
+                price: 35000000,
+                fuelEfficiency: '9.5km/L',
+                engine: '2.0L',
+                transmission: 'Automatic',
+                seats: 5,
+                features: ['스마트 키', '후방카메라', '에어컨'],
+                tags: ['합리적', '실용적'],
+                weights: { performance: 7, efficiency: 8, design: 6, safety: 8, comfort: 7 }
+            },
+            {
+                id: 'car_003',
+                brand: 'BMW',
+                model: 'X5',
+                category: 'SUV',
+                price: 85000000,
+                fuelEfficiency: '7.0km/L',
+                engine: '3.0L Twin Turbo',
+                transmission: 'Automatic',
+                seats: 5,
+                features: ['전동시트', '파노라마 선루프', '프리미엄 오디오'],
+                tags: ['럭셔리', '성능', '안전'],
+                weights: { performance: 9, efficiency: 6, design: 9, safety: 9, comfort: 9 }
+            },
+            {
+                id: 'car_004',
+                brand: 'Toyota',
+                model: 'Corolla',
+                category: 'Sedan',
+                price: 28000000,
+                fuelEfficiency: '12.5km/L',
+                engine: '1.8L Hybrid',
+                transmission: 'CVT',
+                seats: 5,
+                features: ['하이브리드', '자동 주차', '안개등'],
+                tags: ['경제적', '환경친화'],
+                weights: { performance: 6, efficiency: 10, design: 6, safety: 8, comfort: 7 }
+            }
+        ];
+    }
+}
+
+// ============================================
+// UI 함수
+// ============================================
+
+function showCustomerSelection() {
+    const modal = document.getElementById('customer-modal');
+    const list = document.getElementById('customer-list');
+
+    list.innerHTML = allCustomers.map(customer => `
+        <div class="customer-card" onclick="selectCustomer('${customer.id}')">
+            <div class="customer-avatar">${customer.avatar}</div>
+            <div class="customer-name">${customer.name}</div>
+            <div class="customer-info">
+                ${customer.isGuest ? '비회원 · 인기차량 추천' : `${customer.age} · 신용점수 ${customer.creditScore}점`}
+            </div>
+        </div>
+    `).join('');
+
+    modal.style.display = 'flex';
+}
+
+function selectCustomer(customerId) {
+    currentCustomer = allCustomers.find(c => c.id === customerId);
+
+    if (!currentCustomer) {
+        console.error('고객을 찾을 수 없습니다:', customerId);
+        return;
+    }
+
+    console.log('선택된 고객:', currentCustomer.name);
+
+    // UI 업데이트
+    updateProfileUI();
+    updateBannerUI();
+    renderRecommendedProducts();
+
+    // 모달 닫기
+    document.getElementById('customer-modal').style.display = 'none';
+}
+
+function updateProfileUI() {
+    // 우측 프로필 패널 업데이트
+    document.getElementById('profile-avatar').textContent = currentCustomer.avatar;
+    document.getElementById('profile-name').textContent = currentCustomer.name;
+
+    if (currentCustomer.isGuest) {
+        document.getElementById('profile-hint').textContent = '비회원 · 인기차량 추천';
+    } else {
+        document.getElementById('profile-hint').textContent =
+            `${currentCustomer.age} · 신용점수 ${currentCustomer.creditScore}점`;
+    }
+
+    // 상세 정보 표시
+    const detailsDiv = document.getElementById('profile-details');
+    if (!currentCustomer.isGuest) {
+        detailsDiv.style.display = 'block';
+        document.getElementById('detail-gender').textContent = currentCustomer.gender;
+        document.getElementById('detail-age').textContent = currentCustomer.age;
+        document.getElementById('detail-score').textContent = `${currentCustomer.creditScore}점`;
+        document.getElementById('detail-car').textContent = currentCustomer.currentCar;
+        document.getElementById('detail-type').textContent = currentCustomer.preferredCarType;
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+
+    // 상단 배지 업데이트
+    document.getElementById('user-badge').textContent = `${currentCustomer.avatar} ${currentCustomer.name}`;
+}
+
+function updateBannerUI() {
+    if (currentCustomer.isGuest) {
+        document.getElementById('banner-title').textContent =
+            '지금 바로 시작하세요, 나만의 맞춤 신차';
+        document.getElementById('banner-desc').textContent =
+            '로그인 시 AI 기반 개인 맞춤 추천을 경험할 수 있습니다. 지금은 인기 차량 정보를 확인해 보세요.';
+        document.getElementById('rec-title').textContent = '인기 자동차';
+    } else {
+        document.getElementById('banner-title').textContent =
+            `${currentCustomer.name}님을 위한 맞춤 추천`;
+        document.getElementById('banner-desc').textContent =
+            `당신의 성향과 신용점수에 맞는 자동차가 추천되었습니다. ${currentCustomer.expectedFeature}를 중심으로 선별되었습니다.`;
+        document.getElementById('rec-title').textContent =
+            `${currentCustomer.name}님을 위한 추천 자동차`;
+    }
+}
+
+// ============================================
+// 상품 추천 렌더링
+// ============================================
+
+function renderRecommendedProducts() {
+    if (currentCustomer.isGuest) {
+        // 비회원: 인기차량 (상위 4개)
+        filteredProducts = allProducts.slice(0, 4);
+    } else {
+        // 회원: 성향에 맞는 추천
+        filteredProducts = getRecommendedProducts(currentCustomer);
+    }
+
+    displayProducts(filteredProducts);
+}
+
+function getRecommendedProducts(customer) {
+    // 추천 점수 계산
+    let scored = allProducts.map(product => {
+        let score = 0;
+        let matchCount = 0;
+
+        // 고객의 선호도와 상품의 가중치 비교
+        for (let key in customer.preferences) {
+            if (product.weights && product.weights[key]) {
+                // 공통 항목이 높을수록 높은 점수
+                const customerPref = customer.preferences[key];
+                const productWeight = product.weights[key];
+                score += (customerPref * productWeight) / 10;
+                matchCount++;
+            }
+        }
+
+        score = matchCount > 0 ? score / matchCount : 0;
+
+        // 차종 일치 보너스
+        if (customer.preferredCarType !== '전체' && product.category === customer.preferredCarType) {
+            score += 5;
+        }
+
+        return {
+            ...product,
+            recommendScore: Math.round(score * 10) / 10
+        };
+    });
+
+    // 높은 점수순으로 정렬
+    return scored.sort((a, b) => b.recommendScore - a.recommendScore);
+}
+
+function displayProducts(products) {
+    const grid = document.getElementById('products-grid');
+
+    grid.innerHTML = products.map(product => {
+        let tag = '';
+        if (product.tags && product.tags.length > 0) {
+            const tagClass = product.tags[0] === '환경친화' ? 'tag-i' :
+                            product.tags[0] === '럭셔리' ? 'tag-k' : 'tag-h';
+            tag = `<span class="pc-tag ${tagClass}">${product.tags[0]}</span>`;
+        }
+
+        return `
+            <div class="prod-card">
+                <div class="pc-img">
+                    <div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;color:#666;font-size:12px;">
+                        🚗
+                    </div>
+                    ${tag}
+                    <div class="pc-btns">
+                        <button class="pc-btn" onclick="viewDetails('${product.id}')">상세</button>
+                        <button class="pc-btn" onclick="selectProduct('${product.id}')">선택</button>
+                    </div>
+                </div>
+                <div class="pc-info">
+                    <div class="pc-brand">${product.brand}</div>
+                    <div class="pc-name">${product.model}</div>
+                    <div class="pc-spec">${product.category}</div>
+                    <div class="pc-price">${formatPrice(product.price)}</div>
+                    <div style="font-size:10px;color:#1a56db;margin-top:5px;font-weight:700;">
+                        ${product.recommendScore ? '★ ' + product.recommendScore + '점' : '인기'}
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+}
+
+// ============================================
+// 사용자 액션
+// ============================================
+
+function switchCustomer() {
+    showCustomerSelection();
+}
+
+function viewDetails(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    if (product) {
+        alert(`${product.brand} ${product.model}\n\n가격: ${formatPrice(product.price)}\n엔진: ${product.engine}\n특징: ${product.features.join(', ')}`);
+    }
+}
+
+function selectProduct(productId) {
+    const product = allProducts.find(p => p.id === productId);
+    if (product) {
+        alert(`${product.brand} ${product.model}이(가) 선택되었습니다.\n\n금융상품 안내 페이지로 이동합니다.`);
+        // TODO: 금융상품 페이지로 이동
+    }
+}
+
+function openChat() {
+    document.getElementById('chat-panel').classList.add('open');
+}
+
+function closeChat() {
+    document.getElementById('chat-panel').classList.remove('open');
+}
+
+function scrollToProducts() {
+    document.getElementById('products-grid').scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================
+// 유틸리티
+// ============================================
+
+function formatPrice(price) {
+    if (price >= 10000000) {
+        return (price / 10000000).toFixed(1) + '천만원';
+    } else if (price >= 1000000) {
+        return Math.round(price / 1000000) + '백만원';
+    }
+    return price.toLocaleString() + '원';
+}
+
+console.log('스크립트 초기화 완료');

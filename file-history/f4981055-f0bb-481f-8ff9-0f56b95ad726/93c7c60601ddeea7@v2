@@ -1,0 +1,222 @@
+# 상담어드바이저 콜종료후 분석 화면 재구성
+
+## Context
+콜 종료 후 분석 팝업 화면을 DESC.md 요구사항에 맞게 좌/우측 컬럼을 전면 재구성한다.
+기존 신호등 평가 대신 레이더 그래프 기반 평가로 고도화하고, 긍부정 분석을 한눈에 볼 수 있는 섹션으로 신규 구성한다.
+
+## 대상 파일
+- `D:\Claude Code\poc\ipo\advisor\상담어드바이저_콜종료후_분석.html` (단일 파일)
+
+---
+
+## TOBE 레이아웃
+
+| 좌측 컬럼 | 우측 컬럼 |
+|-----------|-----------|
+| 이슈어 (기존 이슈 탭 → 독립 섹션) | 고객정보 (기존 좌측 → 우측 이동) |
+| 상담유형 (수정/삭제 아이콘 추가) | 긍부정 분석 (신규) |
+| 핵심문장 (수정/삭제 아이콘 추가) | 상담평가 (레이더 그래프, 신규) |
+| 상담요약 (고객/상담원 2개, 1문장) | |
+
+---
+
+## Step 1. CDN 추가
+`<head>` 내 marked.min.js 아래에 추가:
+```html
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+```
+
+---
+
+## Step 2. HTML 재작성
+
+### 좌측 컬럼
+
+**이슈어 섹션** — 기존 `panel-issue` 마크업을 `.section`으로 이동, JS 함수 `addIssueTag()` / `removeTag()` 유지
+
+**상담유형 / 핵심문장** — 각 `<tr>`에 액션 컬럼 추가:
+```html
+<th style="width:48px;">편집</th>
+...
+<td class="action-cell">
+  <button class="icon-btn edit-btn" onclick="startRowEdit(this)">✎</button>
+  <button class="icon-btn del-row-btn" onclick="deleteRow(this)">✕</button>
+</td>
+```
+
+**상담요약** — 폴딩 제거, 2개 항목만, 1문장 텍스트:
+```html
+<div class="summary-plain-item">
+  <div class="summary-plain-label">고객 발화</div>
+  <div class="summary-plain-text" ondblclick="startEdit(this)" data-md="...1문장..."></div>
+</div>
+<div class="summary-plain-item">
+  <div class="summary-plain-label">상담원 발화</div>
+  <div class="summary-plain-text" ondblclick="startEdit(this)" data-md="...1문장..."></div>
+</div>
+```
+
+### 우측 컬럼
+
+**고객정보** — 기존 `.customer-inline` 블록 그대로 이동
+
+**긍부정 분석 섹션 (신규)**:
+- 상단: Chart.js 가로 막대 그래프 (`type: 'bar'`, `indexAxis: 'y'`, min:-100 max:100)
+  - 긍정(초록) / 부정(빨강) 2개 bar
+- 하단: 긍정어/부정어 탭 전환 → 순위/화자/유발문장/횟수 테이블
+
+**상담평가 섹션 (신규)**:
+- Chart.js 레이더 그래프 (5개 항목, 최대 10점)
+- 캔버스(180×180) + 우측 항목별 근거 텍스트 (좌우 flex 레이아웃)
+- 5개 지표 네이밍:
+
+| # | 명칭 | 원문 지표 |
+|---|------|-----------|
+| 1 | 공감 대응 | 고객 긍/부정 상황 공감 |
+| 2 | 언어 준수 | 욕설·금지어·금칙어 대응 |
+| 3 | 상담 태도 | 적극성·편리성·신속성 |
+| 4 | 책임 이행 | 고객 및 책임회피 표현 여부 |
+| 5 | 발화 효율 | 반복·불필요 발화 여부 |
+
+---
+
+## Step 3. CSS 변경
+
+**제거:**
+- `.traffic-light`, `.light`, `.light-*`, `.eval-signal`, `.eval-label`, `status-*` (신호등 관련)
+- `.summary-body`, `.summary-sub-title`, `.fold-icon`, `.summary-item`, `.kw-tabs`, `.kw-tab`, `.kw-panel` (폴딩·탭 관련)
+
+**추가:**
+```css
+/* 인라인 편집 */
+.action-cell { text-align: center; white-space: nowrap; padding: 3px 4px; }
+.icon-btn { background: none; border: none; cursor: pointer; font-size: 13px; padding: 2px 3px; border-radius: 2px; }
+.edit-btn { color: #2c4a7c; }
+.edit-btn:hover { background: #e8f0fe; }
+.del-row-btn { color: #c0392b; }
+.del-row-btn:hover { background: #ffe5e3; }
+.row-edit-input { width:100%; padding:2px 6px; border:1px solid #2c4a7c; border-radius:3px; font-size:12.5px; outline:none; }
+
+/* 상담요약 간략화 */
+.summary-plain-item { padding: 7px 10px; border-bottom: 1px solid #eef0f5; }
+.summary-plain-item:last-child { border-bottom: none; }
+.summary-plain-label { font-size: 11px; font-weight: bold; color: #888; margin-bottom: 3px; }
+.summary-plain-text { font-size: 12.5px; color: #333; line-height: 1.6; cursor: text; padding: 3px 4px; border-radius: 3px; }
+.summary-plain-text:hover { background: #f5f7fb; }
+
+/* 긍부정 탭 */
+.sent-tabs { display:flex; gap:3px; padding:4px 8px 0; border-bottom:1px solid #d0d5de; }
+.sent-tab { padding:3px 10px; border:1px solid #ccc; border-bottom:none; border-radius:3px 3px 0 0; background:#e8edf5; cursor:pointer; font-size:12px; color:#555; }
+.sent-tab.active { background:#fff; border-color:#2c4a7c; color:#2c4a7c; font-weight:bold; border-bottom:1px solid #fff; margin-bottom:-1px; }
+.sent-panel { display:none; }
+.sent-panel.active { display:block; }
+
+/* 레이더 레이아웃 */
+.eval-radar-wrap { flex:1; overflow-y:auto; padding:8px 10px; }
+.radar-layout { display:flex; gap:10px; align-items:flex-start; }
+.radar-canvas-box { flex-shrink:0; width:180px; height:180px; }
+.radar-legend-box { flex:1; display:flex; flex-direction:column; gap:6px; padding-top:4px; }
+.radar-item .r-label { font-size:11.5px; font-weight:bold; color:#2c4a7c; }
+.radar-item .r-score { font-size:11px; color:#888; margin-left:4px; }
+.radar-item .r-desc { font-size:11px; color:#555; line-height:1.5; }
+```
+
+---
+
+## Step 4. JS 변경
+
+**제거:** `toggleSummary()` 함수
+
+**수정:** `startEdit()` — `.closest('.summary-body')` 참조를 `.closest('.summary-plain-item')` 기준으로 변경
+
+**추가:**
+```javascript
+// 행 인라인 수정
+function startRowEdit(btn) {
+  const td = btn.closest('tr').querySelector('.editable-cell');
+  const span = td.querySelector('.cell-text');
+  if (td.querySelector('.row-edit-input')) return;
+  const input = document.createElement('input');
+  input.className = 'row-edit-input';
+  input.value = span.textContent;
+  span.style.display = 'none';
+  td.appendChild(input);
+  input.focus();
+  function save() { span.textContent = input.value; span.style.display = ''; input.remove(); }
+  input.addEventListener('blur', save);
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') input.blur();
+    if (e.key === 'Escape') { input.remove(); span.style.display = ''; }
+  });
+}
+
+// 행 삭제 + 순위 재정렬
+function deleteRow(btn) {
+  const tr = btn.closest('tr');
+  const tbody = tr.closest('tbody');
+  tr.remove();
+  tbody.querySelectorAll('tr').forEach((r, i) => {
+    const rankCell = r.querySelector('.rank');
+    if (rankCell) rankCell.textContent = i + 1;
+  });
+}
+
+// 긍부정 탭 전환
+function switchSentTab(tabEl, panelId) {
+  tabEl.closest('.section').querySelectorAll('.sent-tab').forEach(t => t.classList.remove('active'));
+  tabEl.closest('.section').querySelectorAll('.sent-panel').forEach(p => p.classList.remove('active'));
+  tabEl.classList.add('active');
+  document.getElementById(panelId).classList.add('active');
+}
+```
+
+**DOMContentLoaded에 추가:**
+```javascript
+// 긍부정 가로 막대 그래프
+new Chart(document.getElementById('sentimentBarChart').getContext('2d'), {
+  type: 'bar',
+  data: {
+    labels: ['긍정', '부정'],
+    datasets: [{ data: [67, -22], backgroundColor: ['rgba(39,174,96,0.75)','rgba(231,76,60,0.75)'], borderWidth: 0, barThickness: 18 }]
+  },
+  options: {
+    indexAxis: 'y', responsive: true,
+    plugins: { legend: { display: false } },
+    scales: {
+      x: { min: -100, max: 100, ticks: { callback: v => (v>0?'+':'')+v, font:{size:10} } }
+    }
+  }
+});
+
+// 레이더 그래프
+const evalData = [
+  { label:'공감 대응', score:7, desc:'기본 공감 포함, 중도이사 우려에 추가 설명 다소 부족' },
+  { label:'언어 준수', score:10, desc:'금칙어·금지어 사용 없음, 고객 발화 내 금칙어 미감지' },
+  { label:'상담 태도', score:8,  desc:'안내 적극적·신속, 서류·절차 명확히 전달' },
+  { label:'책임 이행', score:9,  desc:'책임 회피 표현 없음, 해결 중심 응대' },
+  { label:'발화 효율', score:8,  desc:'불필요 반복 발화 없음, 간결한 안내' },
+];
+new Chart(document.getElementById('evalRadarChart').getContext('2d'), {
+  type: 'radar',
+  data: {
+    labels: evalData.map(d => d.label),
+    datasets: [{ data: evalData.map(d => d.score), backgroundColor:'rgba(44,74,124,0.15)', borderColor:'#2c4a7c', borderWidth:2, pointBackgroundColor:'#2c4a7c', pointRadius:3 }]
+  },
+  options: { responsive:true, maintainAspectRatio:true, plugins:{legend:{display:false}}, scales:{r:{min:0,max:10,ticks:{stepSize:2,font:{size:9}},pointLabels:{font:{size:10}}}} }
+});
+const box = document.getElementById('radarLegend');
+evalData.forEach(d => {
+  box.innerHTML += `<div class="radar-item"><div class="r-label">${d.label}<span class="r-score">${d.score}/10</span></div><div class="r-desc">${d.desc}</div></div>`;
+});
+```
+
+---
+
+## Verification
+1. 브라우저에서 HTML 파일 직접 열기
+2. 좌측: 이슈어 태그 추가/삭제 동작 확인
+3. 상담유형/핵심문장: ✎ 클릭 → 인라인 편집, ✕ 클릭 → 행 삭제 + 순위 재정렬 확인
+4. 상담요약: 더블클릭 편집 동작 확인
+5. 우측 긍부정: 가로 막대 그래프 렌더링 + 탭 전환 확인
+6. 우측 상담평가: 레이더 그래프 렌더링 + 항목별 근거 표시 확인
+7. 전체 팝업 92vh 내 스크롤 처리 확인

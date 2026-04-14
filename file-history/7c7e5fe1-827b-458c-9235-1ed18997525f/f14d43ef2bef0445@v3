@@ -1,0 +1,364 @@
+/**
+ * 비회원 페이지 로직
+ * non_member.html에서 로드됨
+ * FAB 버튼(🤖) 클릭 시 AI 시나리오 자동 재생
+ */
+
+// ============================================
+// AI 상담 시나리오 데이터
+// ============================================
+
+var SCENARIO = [
+  // ① 성별
+  {type:"agent",    delay:700,
+   text:"안녕하세요! 우리WON카 AI 추천 상담사입니다 😊\n몇 가지만 여쭤보고 딱 맞는 차를 찾아드릴게요.\n\n먼저, 성별이 어떻게 되시나요?"},
+
+  {type:"user",     delay:2000, text:"여성이에요"},
+  {type:"progress", delay:200,  index:1},
+
+  // ② 나이대
+  {type:"agent",    delay:900,
+   text:"네, 감사합니다! 😊\n연령대는 어떻게 되시나요?"},
+
+  {type:"user",     delay:1800, text:"20대 후반이에요"},
+  {type:"progress", delay:200,  index:2},
+
+  // ③ 직업군
+  {type:"agent",    delay:900,
+   text:"직업군도 여쭤봐도 될까요?\n예를 들어 직장인, 자영업자, 학생 등이요."},
+
+  {type:"user",     delay:2000, text:"마케팅 회사 다니고 있어요"},
+  {type:"progress", delay:200,  index:3},
+
+  // ④ 우선순위
+  {type:"agent",    delay:1000,
+   text:"차량 선택에서 가장 중요하게 생각하시는 게 뭔가요?\n연비, 주행성능, 편의성 중에서 꼽아주신다면요."},
+
+  {type:"user",     delay:2200, text:"연비요! 출퇴근 거리가 길어서 연비가 제일 중요해요"},
+  {type:"progress", delay:200,  index:4},
+
+  // ⑤ 차종
+  {type:"agent",    delay:900,
+   text:"마지막으로 세단과 SUV 중 어떤 스타일을 선호하세요?"},
+
+  {type:"user",     delay:1800, text:"SUV가 좋아요. 실용적으로 쓸 수 있을 것 같아서요."},
+  {type:"progress", delay:200,  index:5},
+
+  // 분석 중
+  {type:"agent",    delay:800,
+   text:"감사합니다! 입력해주신 조건을 분석하고 있습니다 🔍"},
+
+  // 조건 요약
+  {type:"summary",  delay:1200,
+   items:[
+     {ico:"👩", label:"성별", val:"여성"},
+     {ico:"🎂", label:"나이", val:"20대 후반"},
+     {ico:"💼", label:"직업", val:"직장인 (마케팅)"},
+     {ico:"🌿", label:"우선순위", val:"연비"},
+     {ico:"🚙", label:"선호 차종", val:"SUV"},
+   ]},
+
+  // 추천
+  {type:"agent",    delay:1000,
+   text:"분석 완료! 고객님 조건에 딱 맞는\n연비 특화 하이브리드 SUV를 추천해드립니다 🎯"},
+
+  {type:"rec",      delay:700,
+   cars:["sorento","tucson","nx350h","santafe"]},
+];
+
+// ============================================
+// 상태 관리
+// ============================================
+
+var chatOpened = false;
+var scenarioRunning = false;
+
+// ============================================
+// 초기화
+// ============================================
+
+window.addEventListener('DOMContentLoaded', function() {
+  // 검색 시스템 초기화
+  const initResult = initSearch();
+  if (initResult) {
+    console.log('✅ 검색 시스템 초기화 완료');
+  }
+
+  // 검색 입력 이벤트
+  const searchInput = document.getElementById('search-input');
+  if (searchInput) {
+    searchInput.addEventListener('input', function(e) {
+      handleSearchInput(e.target.value);
+    });
+  }
+
+  console.log('non_member.js 로드 완료');
+});
+
+// ============================================
+// 채팅 UI 핸들러
+// ============================================
+
+/**
+ * 채팅 패널 열기 (매번 새로운 시나리오 시작)
+ */
+function openChat() {
+  var chatPanel = document.getElementById("chatPanel");
+  var backdrop = document.getElementById("backdrop");
+  var chatBody = document.getElementById("chatBody");
+
+  // 패널 오픈
+  if (!chatPanel.classList.contains("open")) {
+    chatPanel.classList.add("open");
+    backdrop.classList.add("on");
+  }
+
+  // 이전 채팅 내용 삭제 + 시나리오 초기화
+  if (chatBody) {
+    chatBody.innerHTML = '';
+  }
+  scenarioRunning = false;  // 시나리오 재실행 가능하도록 초기화
+
+  // 매번 새로운 시나리오 시작
+  playScenario();
+}
+
+/**
+ * 채팅 패널 닫기
+ */
+function closeChat() {
+  var chatPanel = document.getElementById("chatPanel");
+  var backdrop = document.getElementById("backdrop");
+
+  chatPanel.classList.remove("open");
+  backdrop.classList.remove("on");
+}
+
+// backdrop 클릭 시 채팅 닫기
+document.addEventListener('DOMContentLoaded', function() {
+  var backdrop = document.getElementById("backdrop");
+  if (backdrop) {
+    backdrop.addEventListener('click', closeChat);
+  }
+});
+
+// ============================================
+// 시나리오 실행
+// ============================================
+
+/**
+ * 시나리오 자동 재생
+ */
+function playScenario() {
+  if (scenarioRunning) return;
+  scenarioRunning = true;
+
+  var body = document.querySelector(".cl-body");
+  var progressBars = document.querySelectorAll(".prog-step");
+  var progressLabel = document.querySelector(".prog-label");
+
+  for (var i = 0; i < SCENARIO.length; i++) {
+    var step = SCENARIO[i];
+
+    (function(index, stepData) {
+      var delay = stepData.delay || 0;
+
+      setTimeout(function() {
+        if (stepData.type === "agent") {
+          addBotMessage(body, stepData.text);
+        } else if (stepData.type === "user") {
+          addUserMessage(body, stepData.text);
+        } else if (stepData.type === "progress") {
+          updateProgressBar(progressBars, stepData.index, progressLabel);
+        } else if (stepData.type === "summary") {
+          addSummaryBox(body, stepData.items);
+        } else if (stepData.type === "rec") {
+          addRecommendations(body, stepData.cars);
+        } else if (stepData.type === "typing") {
+          addTypingIndicator(body);
+          setTimeout(function() {
+            removeTypingIndicator(body);
+          }, 1500);
+        }
+      }, delay);
+    })(i, step);
+  }
+}
+
+// ============================================
+// 메시지 렌더링 함수들
+// ============================================
+
+/**
+ * 봇 메시지 추가
+ */
+function addBotMessage(container, text) {
+  var msg = document.createElement('div');
+  msg.className = 'msg msg-anim';
+  msg.innerHTML = '<div class="m-av av-bot">🤖</div>' +
+                  '<div class="msg-r">' +
+                    '<div class="bubble b-bot">' + text.replace(/\n/g, '<br>') + '</div>' +
+                    '<div class="m-time">' + new Date().toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'}) + '</div>' +
+                  '</div>';
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * 사용자 메시지 추가
+ */
+function addUserMessage(container, text) {
+  var msg = document.createElement('div');
+  msg.className = 'msg msg-user msg-anim';
+  msg.innerHTML = '<div class="m-av av-usr">👤</div>' +
+                  '<div class="msg-r">' +
+                    '<div class="bubble b-usr">' + text + '</div>' +
+                    '<div class="m-time">' + new Date().toLocaleTimeString('ko-KR', {hour: '2-digit', minute:'2-digit'}) + '</div>' +
+                  '</div>';
+  container.appendChild(msg);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * 프로그레스 바 업데이트
+ */
+function updateProgressBar(bars, index, label) {
+  for (var i = 0; i < bars.length; i++) {
+    bars[i].classList.remove('active', 'done');
+    if (i < index) {
+      bars[i].classList.add('done');
+    } else if (i === index) {
+      bars[i].classList.add('active');
+    }
+  }
+}
+
+/**
+ * 조건 요약 박스 추가
+ */
+function addSummaryBox(container, items) {
+  var summary = document.createElement('div');
+  summary.className = 'cond-summary';
+
+  var title = '<div class="cs-title">📋 분석된 고객 조건</div>';
+  var rows = items.map(function(item) {
+    return '<div class="cond-row">' +
+           '<div class="cond-ico">' + item.ico + '</div>' +
+           '<div><strong>' + item.label + ':</strong> <span class="cond-val">' + item.val + '</span></div>' +
+           '</div>';
+  }).join('');
+
+  summary.innerHTML = title + rows;
+
+  var wrapper = document.createElement('div');
+  wrapper.className = 'msg msg-anim';
+  wrapper.style.marginTop = '8px';
+  wrapper.appendChild(summary);
+
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * 추천 차량 카드 추가
+ */
+function addRecommendations(container, carKeys) {
+  var wrapper = document.createElement('div');
+  wrapper.className = 'msg msg-anim';
+
+  var cardsHtml = '<div class="rec-wrap">';
+
+  carKeys.forEach(function(carKey) {
+    var car = getCarFromAllResults(carKey);
+    if (car) {
+      cardsHtml += '<div class="rc">' +
+                   '<div class="rc-img"><img src="' + CAR_IMGS[carKey] + '" alt="' + car.name + '"></div>' +
+                   '<div class="rc-info">' +
+                   '<div class="rc-brand">' + car.brand + '</div>' +
+                   '<div class="rc-name">' + car.name + '</div>' +
+                   '<div class="rc-spec">' + car.spec + '</div>' +
+                   '<div class="rc-price">' + car.price + '</div>' +
+                   '<button class="rc-btn" onclick="selectProduct(\'' + carKey + '\')">선택하기</button>' +
+                   '</div></div>';
+    }
+  });
+
+  cardsHtml += '</div>';
+
+  wrapper.innerHTML = '<div class="m-av av-bot">🤖</div>' +
+                      '<div class="msg-r">' +
+                        '<div class="bubble b-bot" style="background:transparent; padding:0; display:flex; gap:8px;">' +
+                        cardsHtml +
+                        '</div>' +
+                      '</div>';
+
+  container.appendChild(wrapper);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * 타이핑 인디케이터 추가
+ */
+function addTypingIndicator(container) {
+  var typing = document.createElement('div');
+  typing.className = 'typing-row msg-anim';
+  typing.id = 'typingIndicator';
+  typing.innerHTML = '<div class="m-av av-bot">🤖</div>' +
+                     '<div class="typing-bub"><span></span><span></span><span></span></div>';
+  container.appendChild(typing);
+  container.scrollTop = container.scrollHeight;
+}
+
+/**
+ * 타이핑 인디케이터 제거
+ */
+function removeTypingIndicator(container) {
+  var indicator = document.getElementById('typingIndicator');
+  if (indicator) {
+    indicator.remove();
+  }
+}
+
+// ============================================
+// 검색과 추천 통합
+// ============================================
+
+/**
+ * 전체 결과셋에서 차량 찾기
+ */
+function getCarFromAllResults(carKey) {
+  if (typeof SEARCH_RESULTS !== 'undefined') {
+    for (var resultId in SEARCH_RESULTS) {
+      var result = SEARCH_RESULTS[resultId];
+      var car = result.cars.find(function(c) { return c.img === carKey; });
+      if (car) return car;
+    }
+  }
+  return null;
+}
+
+/**
+ * 차량 선택 핸들러
+ */
+function selectProduct(imgKey) {
+  alert(imgKey.toUpperCase() + ' 차량이 선택되었습니다.\n금융상품 안내로 이동합니다.');
+}
+
+/**
+ * 차량 상세보기 핸들러
+ */
+function viewDetails(imgKey) {
+  var carInfo = {
+    g80: 'GENESIS G80 3.5T AWD 스포츠패키지 - 380마력',
+    bmw5: 'BMW 5시리즈 530i xDrive M스포츠 - 252마력',
+    k8: 'KIA K8 3.5 GDI 시그니처 - 300마력',
+    grandeur: 'HYUNDAI 그랜저 캘리그래피 3.5 GDI - 304마력',
+    sorento: 'KIA 쏘렌토 하이브리드 시그니처 - 7인승, 연비 16.0km/L',
+    tucson: 'HYUNDAI 투싼 하이브리드 인스퍼레이션 - 연비 15.6km/L',
+    nx350h: 'LEXUS NX 350h F SPORT - 연비 14.6km/L',
+    santafe: 'HYUNDAI 싼타페 하이브리드 캘리그래피 - 7인승, 연비 14.2km/L'
+  };
+  alert(carInfo[imgKey] || '차량 정보를 찾을 수 없습니다.');
+}
+
+console.log('non_member.js 로드 완료');

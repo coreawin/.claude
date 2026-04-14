@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3)",
+      "Bash(python3 -c ':*)",
+      "Bash(node -c common.js)",
+      "Bash(node -c member.js)",
+      "Bash(wc -c /c/Users/corea/.claude/skills/**/SKILL.md)"
+    ]
+  },
+  "enabledPlugins": {
+    "superpowers@claude-plugins-official": false
+  }
+}

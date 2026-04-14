@@ -1,0 +1,224 @@
+# 플랜: 단일 페이지 통합 + UI 개선 4가지 수정
+
+## Context
+
+현재 member.html / non_member.html 두 파일로 분리된 구조를 **단일 페이지(member.html)** 로 통합하고,
+검색 결과 UI·로고 클릭·채팅창을 개선한다.
+
+수정 요구사항:
+1. **통합**: selA 드롭다운에 "비회원" 옵션 추가 → Apply 시 회원/비회원 뷰 전환
+2. **로고 클릭 = 검색 초기화 (홈)**: 로고 클릭 시 검색창 비우고 기본 추천으로 복귀
+3. **검색결과 형태 변경**: 대형 prod-card(4열) → 소형 cr-item 리스트 형태
+4. **채팅창 공통화**: non_member.html의 채팅 패널·FAB 버튼을 단일 페이지에 포함 (회원/비회원 모두 접근 가능)
+
+---
+
+## 수정 대상 파일
+
+| 파일 | 수정 내용 |
+|------|-----------|
+| `src/member.html` | 통합 대상 파일 (모든 변경의 중심) |
+| `src/common.js` | `createSearchResultSection` → cr-item 형식으로 변경 |
+| `src/member.js` | `onSelectA`에 "비회원(C)" 분기 추가, `apply()` 수정, 로고 클릭 함수 추가 |
+| `src/non_member.js` | 제거하지 않고 그대로 유지 (참고용) |
+
+---
+
+## 1. member.html 통합
+
+### 1-1. top-bar selA 드롭다운에 비회원 옵션 추가
+
+```html
+<select class="user-select" id="selA" onchange="onSelectA(this.value)">
+  <option value="A">🔵 A사용자</option>
+  <option value="B">🟢 B사용자</option>
+  <option value="C">👤 비회원</option>   ← 추가
+</select>
+```
+
+### 1-2. 레이아웃 구조 (비회원/회원 뷰 전환)
+
+메인 `.layout` 영역 안에 두 사이드바를 모두 넣고 CSS `display:none/block`으로 전환:
+
+```html
+<div class="layout">
+  <div class="main" id="mainContent">
+    <div id="search-results-container" style="display:none;"></div>
+    <div id="recommended-section"></div>  <!-- 회원/비회원 콘텐츠 모두 여기에 렌더링 -->
+  </div>
+
+  <!-- 회원용 사이드바 (기존 .sidebar) -->
+  <div class="sidebar" id="memberSidebar">
+    <!-- sbAvatar, sbName, credit-box, j-tabs, j-list 등 기존 구조 그대로 -->
+  </div>
+
+  <!-- 비회원용 사이드바 (non_member.html .right 구조 그대로) -->
+  <div class="right" id="guestSidebar" style="display:none;">
+    <!-- rg-top, rg-login, rg-jt, rg-empty 등 그대로 -->
+  </div>
+</div>
+```
+
+### 1-3. 채팅 패널 (비회원/회원 공통으로 추가)
+
+non_member.html의 다음 요소를 member.html에 그대로 복사:
+- `.backdrop` div (id="backdrop")
+- `.chat-panel` div (id="chatPanel") — 내부 `.cl` + `.cr` 구조 전체
+- `.fab-btn` button
+- `.fab-label` div
+
+CSS도 동일하게 추가:
+- `.backdrop`, `.chat-panel`, `.cl-*`, `.cr-*`, `.msg`, `.bubble`, `.typing-*`, `.rec-wrap`, `.cond-*`, `.prog-*` 등 모든 채팅 관련 CSS
+
+### 1-4. SCENARIO 로직 (non_member.js에서 이식)
+
+member.html에 `<script src="non_member.js"></script>` 추가 (기존 non_member.js 재사용).
+
+---
+
+## 2. 로고 클릭 = 검색 초기화
+
+### member.html 로고에 클릭 이벤트 추가
+
+```html
+<!-- 기존 -->
+<div class="logo">우리<span class="won">WON</span>카</div>
+
+<!-- 변경 -->
+<div class="logo" onclick="logoHome()" style="cursor:pointer;">우리<span class="won">WON</span>카</div>
+```
+
+### member.js에 logoHome 함수 추가
+
+```javascript
+function logoHome() {
+  const input = document.getElementById('search-input');
+  if (input) input.value = '';
+  showDefaultResults();  // common.js의 기존 함수
+}
+```
+
+---
+
+## 3. 검색결과 형태 변경 (common.js)
+
+### 현재: prod-grid 4열 대형 카드
+
+`createSearchResultSection` 함수가 `prod-grid` / `prod-card` / `pc-img(height:155px)` 형태로 렌더링.
+
+### 변경: cr-item 소형 리스트
+
+`createSearchResultSection` 내 HTML 생성 부분을 `cr-item` 형식으로 교체:
+
+```html
+<!-- 검색결과 섹션 구조 변경 -->
+<div class="search-result-section">
+  <div class="search-result-header">
+    <h3>{title}</h3>
+    <p class="search-result-desc">{description}</p>
+  </div>
+  <div class="cr-list">        ← prod-grid 대신 cr-list
+    <div class="cr-item">
+      <div class="cr-item-img"><img src="{CAR_IMGS[key]}" alt="{name}"></div>
+      <div class="cr-item-info">
+        <div class="cr-item-brand">{brand}</div>
+        <div class="cr-item-name">{name}</div>
+        <div class="cr-item-price">{price}</div>
+        <div style="font-size:9px;color:#999;">{spec}</div>
+        <div style="font-size:9px;color:#1a56db;font-weight:700;">★ {highlight}</div>
+      </div>
+    </div>
+    ...
+  </div>
+</div>
+```
+
+cr-item의 CSS는 non_member.html에 이미 정의:
+- `.cr-item` — border:1px solid #eee, border-radius:9px
+- `.cr-item-img` — height:80px
+- `.cr-item-info` — padding:6px 9px 8px
+- `.cr-item-brand` — font-size:9px
+- `.cr-item-name` — font-size:10px, font-weight:700
+- `.cr-item-price` — font-size:11px, color:#1a56db
+
+이 CSS를 member.html의 `<style>` 블록에 추가 (또는 common 스타일로 포함).
+
+---
+
+## 4. member.js 수정
+
+### onSelectA 에 "C" (비회원) 분기 추가
+
+```javascript
+function onSelectA(value) {
+  currentUser = value;
+  if (value === 'C') {
+    showGuestView();    // 비회원 뷰 전환
+  } else {
+    showMemberView();   // 회원 뷰 전환
+    renderMain();
+  }
+}
+```
+
+### showGuestView / showMemberView 함수 추가
+
+```javascript
+function showGuestView() {
+  document.getElementById('memberSidebar').style.display = 'none';
+  document.getElementById('guestSidebar').style.display = 'flex';  // .right는 flex
+  // 메인 콘텐츠: 비회원 배너 + 인기차 목록 렌더링
+  renderGuestMain();
+}
+
+function showMemberView() {
+  document.getElementById('memberSidebar').style.display = '';  // 기본값 복원
+  document.getElementById('guestSidebar').style.display = 'none';
+}
+```
+
+### renderGuestMain 함수 추가
+
+non_member.html의 메인 콘텐츠 (배너 + 인기차 prod-grid)를 JS로 렌더링:
+
+```javascript
+function renderGuestMain() {
+  const section = document.getElementById('recommended-section');
+  section.innerHTML = `
+    <div class="banner" onclick="openChat()">
+      <div><h2>나만의 맞춤 신차,<br>AI가 찾아드립니다</h2>...</div>
+    </div>
+    <div class="sec-hdr">...</div>
+    <div class="prod-grid" id="popularGrid"></div>
+  `;
+  // 인기차 목록 렌더링 (기존 non_member.html의 popularCars 데이터 사용)
+  renderPopularCars();
+}
+```
+
+인기차 데이터는 비회원 메인에 표시할 8개 차량 (SEARCH_RESULTS에서 추출하거나 별도 배열로 정의).
+
+---
+
+## 5. 뷰 전환 로직 (요약)
+
+| selA 값 | Apply 결과 |
+|---------|-----------|
+| A | 회원A 뷰: memberSidebar 표시, A 추천차량 렌더 |
+| B | 회원B 뷰: memberSidebar 표시, B 추천차량 렌더 |
+| C (비회원) | guestSidebar 표시, 비회원 배너+인기차 렌더 |
+
+모든 모드에서: 채팅 패널(FAB 🤖) 공통 사용 가능
+
+---
+
+## 6. 검증 방법
+
+1. `src/member.html` 열기
+2. selA = A → A 추천차량, 사이드바 정상 표시
+3. selA = B → B 추천차량, 배너 색상 변경 확인
+4. selA = 비회원 → 배너+인기차 그리드, 우측 비회원 패널 표시
+5. 어느 모드에서나 FAB(🤖) 클릭 → 채팅 패널 열림 → 시나리오 자동 재생
+6. 로고 클릭 → 검색창 초기화, 추천 목록 복귀
+7. 검색창 "연비 SUV" 입력 → cr-item 소형 리스트 형태로 결과 표시
+8. selA = 비회원 → "연비 SUV" 검색 → cr-item 형태로 표시

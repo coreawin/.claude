@@ -1,0 +1,122 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
+## Project Overview
+
+[Add project description, technology stack, and main purpose here]
+
+## Setup & Development
+
+### Prerequisites
+- [List required tools and versions]
+  - Example: Node.js 18+, Python 3.10+, Docker, etc.
+
+### Installation
+```bash
+# Add project-specific setup commands
+# Example:
+# npm install
+# pip install -r requirements.txt
+```
+
+### Running the Project
+```bash
+# Add commands to start the development server
+# Example:
+# npm run dev
+# python manage.py runserver
+```
+
+## Testing
+
+### Run All Tests
+```bash
+# Example: npm test, pytest, etc.
+```
+
+### Run Single Test
+```bash
+# Example: npm test -- fileName.test.js
+```
+
+### Coverage
+```bash
+# Example: npm test -- --coverage
+```
+
+## Building & Deployment
+
+### Build for Production
+```bash
+# Example: npm run build, cargo build --release, etc.
+```
+
+### Linting & Code Quality
+```bash
+# Add linting commands
+# Example: npm run lint, black ., cargo fmt, etc.
+```
+
+## Architecture
+
+### High-Level Structure
+```
+[Add key architectural patterns and structure here]
+
+Example:
+- Backend: REST API (Express/Flask/Spring Boot)
+- Frontend: [Framework] components
+- Database: [Type and schema notes]
+```
+
+### Key Components
+- **[Component Name]**: [Brief purpose and responsibilities]
+- **[Component Name]**: [Brief purpose and responsibilities]
+
+### Important Design Decisions
+- [Document significant architectural choices and why they were made]
+
+## File Organization
+
+```
+[Show meaningful directory structure]
+
+Example:
+src/
+  ├── api/           # REST endpoints
+  ├── models/        # Data models
+  ├── services/      # Business logic
+  └── utils/         # Shared utilities
+```
+
+## Environment Variables
+
+[Document required environment variables and their purposes]
+
+Example:
+```
+DATABASE_URL=          # PostgreSQL connection string
+API_KEY=              # External service API key
+DEBUG=                # Enable debug logging
+```
+
+## Common Commands
+
+| Task | Command |
+|------|---------|
+| Start dev server | `[command]` |
+| Run tests | `[command]` |
+| Build | `[command]` |
+| Lint code | `[command]` |
+| Deploy | `[command]` |
+
+## Relevant Documentation
+
+- [Link to README.md if exists]
+- [Link to API documentation if exists]
+- [Link to setup guides if exists]
+
+## Notes for Future Developers
+
+[Add any project-specific insights, gotchas, or important context that would help future Claude instances work more efficiently]
